@@ -1,0 +1,8 @@
+#gameCanvas {
+    width: 100vmin;
+    height: 100vmin;
+}
+
+.hidden {
+    display: none;
+}
