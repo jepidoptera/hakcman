@@ -1,40 +1,60 @@
 let gameBoardWidth = 27;
 let gameBoardHeight = 27;
+let gameCellWidth;
+let gameCellHeight;
 
 var canvas;
 var ctx;
 
 var bricksImg;
+var smileImg;
+var tongueImg;
+var playerImg;
+
+var playerControls = {
+    ArrowUp: false, 
+    ArrowDown: false, 
+    ArrowLeft: false, 
+    ArrowRight: false
+} 
 
 var gameBoardMap = [
-    "***************************",
-    "* *************************",
-    "* *************************",
-    "* *** *********************",
-    "* *** *********************",
-    "* *** *********************",
-    "* *** *********************",
-    "*           ***************",
-    "* * *****   ***************",
-    "* * * * * *  **************",
-    "* * * * * **  *************",
-    "* * * * * ***  ************",
-    "* * * * * ****  ***********",
-    "* * * * * ***** ***********",
-    "* * * * * ***** ***********",
-    "* * * * * ***** ***********",
-    "* * * * * *****************",
-    "* *        ****************",
-    "* * ****** ****************",
-    "* *        ****************",
-    "***************************",
-    "***************************",
-    "***************************",
-    "***************************",
-    "***************************",
-    "***************************",
-    "***************************",
+    "***************************".split(''),
+    "* *************************".split(''),
+    "* *************************".split(''),
+    "* *** *********************".split(''),
+    "* *** *********************".split(''),
+    "* *** *********************".split(''),
+    "* *** *********************".split(''),
+    "*   +++++++ ***************".split(''),
+    "* * *****   ***************".split(''),
+    "* * *+* * *  **************".split(''),
+    "* * *+* * **  *************".split(''),
+    "* * *+* * ***  ************".split(''),
+    "* * *+* * ****  ***********".split(''),
+    "* * *+* * ***** ***********".split(''),
+    "* * *+* * ***** ***********".split(''),
+    "* * *+* * ***** ***********".split(''),
+    "* * *+* * *****************".split(''),
+    "* *        ****************".split(''),
+    "* * ****** ****************".split(''),
+    "* *        ****************".split(''),
+    "***************************".split(''),
+    "***************************".split(''),
+    "***************************".split(''),
+    "***************************".split(''),
+    "***************************".split(''),
+    "***************************".split(''),
+    "***************************".split(''),
 ]
+
+class Player {
+    constructor() {
+        this.x = 1;
+        this.y = 1;
+    }
+}
+let player = new Player();
 
 $(document).ready(() => {
     canvas = document.getElementById("gameCanvas");
@@ -46,16 +66,25 @@ $(document).ready(() => {
 
     // load images
     bricksImg = document.getElementById("bricksImg");
+    smileImg = document.getElementById("smileImg");
+    tongueImg = document.getElementById("tongueImg");
+    playerImg = smileImg;
 
+    // calculate dimensions
+    gameCellWidth = canvas.width / gameBoardWidth;
+    gameCellHeight = canvas.height / gameBoardHeight;
+
+    // player input
     $(document).on("keydown", function(e) {
-        console.log(e);
+        playerControls[e.key] = true
     })
     $(document).on("keyup", function(e) {
-        console.log(e);
+        playerControls[e.key] = false;
     })
-    setInterval(() => {
-        drawGameBoard();
-    }, 33);
+
+    requestAnimationFrame(drawGameBoard);
+
+    setInterval(movePlayer, 100);
 })
 
 function drawGameBoard() {
@@ -67,12 +96,69 @@ function drawGameBoard() {
             // ctx.stroke();
             if (gameBoardMap[y][x] === "*") {
                 ctx.drawImage(bricksImg, 
-                    canvas.width / gameBoardWidth * x, canvas.height / gameBoardHeight * y,
-                    canvas.width / gameBoardWidth, canvas.height / gameBoardHeight)
+                    gameCellWidth * x, gameCellHeight * y,
+                    gameCellWidth, gameCellHeight)
+            }
+            else if (gameBoardMap[y][x] === "+") {
+                ctx.drawImage(donutImg, 
+                    gameCellWidth * x, gameCellHeight * y,
+                    gameCellWidth, gameCellHeight)
+            }
+            else {
+                ctx.clearRect(gameCellWidth * x, gameCellHeight * y,
+                    gameCellWidth, gameCellHeight)
+            }
+            if (player.x === x && player.y === y) {
+                ctx.drawImage (playerImg, 
+                    gameCellWidth * x, gameCellHeight * y,
+                    gameCellWidth, gameCellHeight)
             }
         }
         // ctx.moveTo(0, canvas.height / gameBoardHeight * y);
         // ctx.lineTo(canvas.width, canvas.height / gameBoardHeight * y);
         // ctx.stroke();
+    }
+    // console.log('frame rendered');
+    requestAnimationFrame(drawGameBoard);
+
+}
+
+function movePlayer() {
+    let moved = false;
+    // console.log('input processed');
+    if (playerControls.ArrowUp) {
+        if (player.y > 0 && gameBoardMap[player.y - 1][player.x] !== "*") {
+            --player.y;
+            moved = true;
+        }
+    }
+    if (playerControls.ArrowDown && !moved) {
+        if (player.y < gameBoardHeight - 1 
+            && gameBoardMap[player.y + 1][player.x] !== "*") {
+            ++player.y;
+            moved = true;
+        }
+    }
+    if (playerControls.ArrowLeft && !moved) {
+        if (player.x > 0 && gameBoardMap[player.y][player.x-1] !== "*") {
+            --player.x;
+            moved = true;
+        }
+    }
+    if (playerControls.ArrowRight && !moved) {
+        if (player.x < gameBoardWidth - 1 && gameBoardMap[player.y][player.x + 1] !== "*") {
+            ++player.x;
+            moved = true;
+        }
+    }
+    if (gameBoardMap[player.y][player.x] === "+") {
+        // eat a donut
+        gameBoardMap[player.y][player.x] = " ";
+        playerImg = tongueImg;
+        setTimeout(() => {
+            // reset player emoji
+            playerImg = smileImg;
+        }, 75)
+        console.log('ate a donut');
     }
 }
