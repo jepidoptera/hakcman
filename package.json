@@ -1,0 +1,23 @@
+{
+  "name": "hackman",
+  "version": "1.0.0",
+  "description": "kinda like... never mind, it's totally original",
+  "main": "hackman.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jepidoptera/hackman.git"
+  },
+  "author": "Peter Allen",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jepidoptera/hackman/issues"
+  },
+  "homepage": "https://github.com/jepidoptera/hackman#readme",
+  "dependencies": {
+    "fs": "0.0.1-security"
+  }
+}

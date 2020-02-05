@@ -1,4 +1,3 @@
-const axios = require('axios');
 const express = require('express');
 const app = express();
 const fs = require('fs');
@@ -28,12 +27,6 @@ app.set("view engine", ".hbs");
 
 // Serve app
 console.log('Listening on: http://localhost:' + port);
-
-app.get('/', (req, res) => {
-    // home page
-    console.log('rendering city select page...');
-    res.render("index", {cities: cities});
-})
 
 app.get('/game/:levelId', (req, res) => {
     const levelData = fs.readFileSync('levels/level1.lvl');
