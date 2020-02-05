@@ -59,10 +59,6 @@ let player = new Player();
 $(document).ready(() => {
     canvas = document.getElementById("gameCanvas");
     ctx = canvas.getContext('2d');
-    // don't draw a big circle
-    // ctx.beginPath();
-    // ctx.arc(200, 200, 150, 0, 2 * Math.PI);
-    // ctx.stroke();
 
     // load images
     bricksImg = document.getElementById("bricksImg");
@@ -87,13 +83,11 @@ $(document).ready(() => {
     setInterval(movePlayer, 100);
 })
 
+
 function drawGameBoard() {
     for (let x = 0; x < gameBoardWidth; x++) {
         for (let y = 0; y < gameBoardHeight; y++) {
 
-            // ctx.moveTo(canvas.width / gameBoardWidth * x, 0);
-            // ctx.lineTo(canvas.width / gameBoardWidth * x, canvas.height)
-            // ctx.stroke();
             if (gameBoardMap[y][x] === "*") {
                 ctx.drawImage(bricksImg, 
                     gameCellWidth * x, gameCellHeight * y,
@@ -114,9 +108,6 @@ function drawGameBoard() {
                     gameCellWidth, gameCellHeight)
             }
         }
-        // ctx.moveTo(0, canvas.height / gameBoardHeight * y);
-        // ctx.lineTo(canvas.width, canvas.height / gameBoardHeight * y);
-        // ctx.stroke();
     }
     // console.log('frame rendered');
     requestAnimationFrame(drawGameBoard);
