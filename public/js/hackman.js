@@ -24,6 +24,7 @@ class Player {
     constructor() {
         this.x = 1;
         this.y = 1;
+        this.facetimeout = null;
     }
 }
 let player = new Player();
@@ -124,10 +125,11 @@ function movePlayer() {
         // eat a donut
         gameBoardMap[player.y][player.x] = " ";
         playerImg = tongueImg;
-        setTimeout(() => {
+        clearInterval(player.facetimeout);
+        player.facetimeout = setTimeout(() => {
             // reset player emoji
             playerImg = smileImg;
-        }, 75)
+        }, 100)
         console.log('ate a donut');
     }
 }
