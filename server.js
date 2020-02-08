@@ -29,7 +29,7 @@ app.set("view engine", ".hbs");
 console.log('Listening on: http://localhost:' + port);
 
 app.get ("/", (req, res) => {
-    res.render("inddex");
+    res.render("index");
 })
 
 app.get('/game/:levelId', (req, res) => {
