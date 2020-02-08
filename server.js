@@ -28,6 +28,10 @@ app.set("view engine", ".hbs");
 // Serve app
 console.log('Listening on: http://localhost:' + port);
 
+app.get ("/", (req, res) => {
+    res.render("inddex");
+})
+
 app.get('/game/:levelId', (req, res) => {
     const levelData = fs.readFileSync('public/levels/level0.lvl').toString();
     // see what we've got
