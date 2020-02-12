@@ -9,7 +9,7 @@ var ctx;
 var bricksImg;
 var smileFace;
 var tongueFace;
-var playerImg;
+var angryFace;
 
 var playerControls = {
     ArrowUp: false, 
@@ -25,34 +25,47 @@ class Player {
         this.x = 1;
         this.y = 1;
         this.facetimeout = null;
+        this.img = smileFace;
     }
 }
-let player = new Player();
+const player = new Player();
 
 class Monster {
     constructor(x, y) {
         this.x = x;
         this.y = y;
         this.direction = [1, 0];
+        this.img = angryFace;
     }
 }
+const monsters = [];
 
 $(document).ready(() => {
-    // load map
-    gameBoardMap = $("#levelData").text()
-        .split("\n").map((line) => {
-            return line.split('');
-    });
-    
-    canvas = document.getElementById("gameCanvas");
-    ctx = canvas.getContext('2d');
 
     // load images
     bricksImg = document.getElementById("bricksImg")
     smileFace = document.getElementById("smileFace")
     tongueFace = document.getElementById("tongueFace")
     angryFace = document.getElementById("angryFace")
-    playerImg = smileFace;
+    player.img = smileFace;
+
+    // load map
+    gameBoardMap = $("#levelData").text()
+        .split("\n").map((line) => {
+            return line.split('');
+    });
+    // load monsters
+    gameBoardMap.forEach((row, y) => {
+        row.forEach((char, x) => {
+            if (char === "🙁") {
+                monsters.push(new Monster(x, y))
+            }
+        })
+    })
+
+    // load canvas
+    canvas = document.getElementById("gameCanvas");
+    ctx = canvas.getContext('2d');
 
     // calculate dimensions
     gameCellWidth = canvas.width / gameBoardWidth;
@@ -90,13 +103,20 @@ function drawGameBoard() {
                 ctx.clearRect(gameCellWidth * x, gameCellHeight * y,
                     gameCellWidth, gameCellHeight)
             }
-            if (player.x === x && player.y === y) {
-                ctx.drawImage (playerImg, 
-                    gameCellWidth * x, gameCellHeight * y,
-                    gameCellWidth, gameCellHeight)
-            }
         }
     }
+
+    ctx.drawImage (playerImg, 
+        gameCellWidth * player.x, gameCellHeight * player.y,
+        gameCellWidth, gameCellHeight)
+
+    // draw monsters
+    monsters.forEach(monster => {
+        ctx.drawImage (monster.img, 
+            gameCellWidth * monster.x, gameCellHeight * monster.y,
+            gameCellWidth, gameCellHeight)
+        })
+
     // console.log('frame rendered');
     requestAnimationFrame(drawGameBoard);
 
@@ -141,4 +161,10 @@ function movePlayer() {
         }, 100)
         console.log('ate a donut');
     }
+}
+
+function moveMosters() {
+    monsters.forEach(monster => {
+
+    })
 }
