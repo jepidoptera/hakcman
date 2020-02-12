@@ -57,7 +57,7 @@ $(document).ready(() => {
     // load monsters
     gameBoardMap.forEach((row, y) => {
         row.forEach((char, x) => {
-            if (char === "🙁") {
+            if (char === "M") {
                 monsters.push(new Monster(x, y))
             }
         })
@@ -82,6 +82,7 @@ $(document).ready(() => {
     requestAnimationFrame(drawGameBoard);
 
     setInterval(movePlayer, 100);
+    setInterval(moveMonsters, 120);
 })
 
 
@@ -106,7 +107,7 @@ function drawGameBoard() {
         }
     }
 
-    ctx.drawImage (playerImg, 
+    ctx.drawImage (player.img, 
         gameCellWidth * player.x, gameCellHeight * player.y,
         gameCellWidth, gameCellHeight)
 
@@ -153,18 +154,56 @@ function movePlayer() {
     if (gameBoardMap[player.y][player.x] === "+") {
         // eat a donut
         gameBoardMap[player.y][player.x] = " ";
-        playerImg = tongueFace;
+        player.img = tongueFace;
         clearInterval(player.facetimeout);
         player.facetimeout = setTimeout(() => {
             // reset player emoji
-            playerImg = smileFace;
+            player.img = smileFace;
         }, 100)
         console.log('ate a donut');
     }
 }
 
-function moveMosters() {
+function moveMonsters() {
     monsters.forEach(monster => {
+        // check which options are available to move towards
+        let moveOptions = checkMoveOptions(monster.x, monster.y);
+        // they will change direction when options for moving change
+        // either hitting a wall, or coming across a new passage
+        if (moveOptions != monster.moveOptions) {
+            monster.moveOptions = moveOptions;
+            // try to move toward player
+            let xdif = player.x - monster.x;
+            let ydif = player.y - monster.y;
+            if (Math.floor(Math.random() * (xdif + ydif)) > xdif) {
+                monster.direction = [Math.sign(xdif), 0]
+            }
+            else {
+                monster.direction = [0, Math.sign(ydif)]
+            }
+            while (gameBoardMap[monster.y + monster.direction[1]]
+                [monster.x + monster.direction[0]] === "*") {
+                    // hit a wall - change direction
+                    monster.direction = 
+                    [[1, 0], [0, 1], [-1, 0], [0, -1]]
+                    [Math.floor(Math.random() * 4)]
+                }
+        }
 
+        monster.x += monster.direction[0];
+        monster.y += monster.direction[1];
     })
+}
+
+function checkMoveOptions(x, y) {
+    // return a number from 1 to 16 which indicates which directions are open
+    let directions = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+    return directions.reduce((sum, direction, i) => {
+        if (gameBoardMap[y + direction[1]][x + direction[0]] === "*") {
+            return sum;
+        }
+        else {
+            return sum + 2 ** i;
+        }
+    }, 0)
 }
