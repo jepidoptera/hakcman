@@ -7,8 +7,8 @@ var canvas;
 var ctx;
 
 var bricksImg;
-var smileImg;
-var tongueImg;
+var smileFace;
+var tongueFace;
 var playerImg;
 
 var playerControls = {
@@ -29,6 +29,14 @@ class Player {
 }
 let player = new Player();
 
+class Monster {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.direction = [1, 0];
+    }
+}
+
 $(document).ready(() => {
     // load map
     gameBoardMap = $("#levelData").text()
@@ -40,10 +48,11 @@ $(document).ready(() => {
     ctx = canvas.getContext('2d');
 
     // load images
-    bricksImg = document.getElementById("bricksImg");
-    smileImg = document.getElementById("smileImg");
-    tongueImg = document.getElementById("tongueImg");
-    playerImg = smileImg;
+    bricksImg = document.getElementById("bricksImg")
+    smileFace = document.getElementById("smileFace")
+    tongueFace = document.getElementById("tongueFace")
+    angryFace = document.getElementById("angryFace")
+    playerImg = smileFace;
 
     // calculate dimensions
     gameCellWidth = canvas.width / gameBoardWidth;
@@ -124,11 +133,11 @@ function movePlayer() {
     if (gameBoardMap[player.y][player.x] === "+") {
         // eat a donut
         gameBoardMap[player.y][player.x] = " ";
-        playerImg = tongueImg;
+        playerImg = tongueFace;
         clearInterval(player.facetimeout);
         player.facetimeout = setTimeout(() => {
             // reset player emoji
-            playerImg = smileImg;
+            playerImg = smileFace;
         }, 100)
         console.log('ate a donut');
     }
