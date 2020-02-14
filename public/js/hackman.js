@@ -82,11 +82,14 @@ $(document).ready(() => {
     requestAnimationFrame(drawGameBoard);
 
     setInterval(movePlayer, 100);
-    setInterval(moveMonsters, 120);
+    setInterval(moveMonsters, 150);
 })
 
 
 function drawGameBoard() {
+    ctx.clearRect(0, 0,
+        canvas.width, canvas.height)
+
     for (let x = 0; x < gameBoardWidth; x++) {
         for (let y = 0; y < gameBoardHeight; y++) {
 
@@ -98,10 +101,6 @@ function drawGameBoard() {
             else if (gameBoardMap[y][x] === "+") {
                 ctx.drawImage(donutImg, 
                     gameCellWidth * x, gameCellHeight * y,
-                    gameCellWidth, gameCellHeight)
-            }
-            else {
-                ctx.clearRect(gameCellWidth * x, gameCellHeight * y,
                     gameCellWidth, gameCellHeight)
             }
         }
@@ -175,7 +174,7 @@ function moveMonsters() {
             // try to move toward player
             let xdif = player.x - monster.x;
             let ydif = player.y - monster.y;
-            if (Math.floor(Math.random() * (xdif + ydif)) > xdif) {
+            if (Math.floor(Math.random() * (Math.abs(xdif) + Math.abs(ydif))) < Math.abs(xdif)) {
                 monster.direction = [Math.sign(xdif), 0]
             }
             else {
