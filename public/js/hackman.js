@@ -169,16 +169,19 @@ function moveMonsters() {
         let moveOptions = checkMoveOptions(monster.x, monster.y);
         // they will change direction when options for moving change
         // either hitting a wall, or coming across a new passage
+        let currentDirection = monster.direction;
         if (moveOptions != monster.moveOptions) {
             monster.moveOptions = moveOptions;
-            // try to move toward player
+            // let's reuse 'moveOptions' to put the monster's options in order of priority
+            moveOptions = [];
+            // try to move toward player first
             let xdif = player.x - monster.x;
             let ydif = player.y - monster.y;
             if (Math.floor(Math.random() * (Math.abs(xdif) + Math.abs(ydif))) < Math.abs(xdif)) {
-                monster.direction = [Math.sign(xdif), 0]
+                moveOptions.push = [Math.sign(xdif), 0]
             }
             else {
-                monster.direction = [0, Math.sign(ydif)]
+                moveOptions.push = [0, Math.sign(ydif)]
             }
             while (gameBoardMap[monster.y + monster.direction[1]]
                 [monster.x + monster.direction[0]] === "*") {
@@ -188,7 +191,10 @@ function moveMonsters() {
                     [Math.floor(Math.random() * 4)]
                 }
         }
-
+        if (currentDirection[0] == -monster.direction[0] && currentDirection[1] == - monster.direction[1]) {
+            // don't allow a course reversal, usually
+            monster.direction = currentDirection
+        }
         monster.x += monster.direction[0];
         monster.y += monster.direction[1];
     })
