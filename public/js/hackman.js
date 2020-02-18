@@ -30,10 +30,12 @@ const directions = [
 class mapLocation {
     constructor(terrain) {
         this.terrain = terrain;
-        this.passable = terrain === "*" ? false : true;
+        this.passable = (terrain === "*" || terrain === "X") ? false : true;
     }
 }
 var gameBoardMap;
+var donutsRemaining = Infinity;
+var swipeAnimation = 0;
 
 class Player {
     constructor() {
@@ -195,9 +197,10 @@ $(document).ready(() => {
 let mousePos ={x: 0, y: 0};
 
 function loadGame() {
-    // reset monsters and player
+    // reset monsters, player, and donuts
     monsters = [];
     player = new Player();
+    donutsRemaining = 0
     // load map
     let mapText = $("#levelData").text()
         .split("\n").map((line) => {
@@ -211,9 +214,15 @@ function loadGame() {
                 monsters.push(new Monster(x, y));
                 char = ' ';
             }
+            if (char === "+") {
+                donutsRemaining ++;
+            }
             gameBoardMap[y][x] = new mapLocation(char);
         })
     })
+
+    // testing::
+    // donutsRemaining = 1;
 
     // load canvas
     canvas = document.getElementById("gameCanvas");
@@ -232,14 +241,14 @@ function drawGameBoard() {
     for (let x = 0; x < gameBoardWidth; x++) {
         for (let y = 0; y < gameBoardHeight; y++) {
 
-            if (gameBoardMap[y][x].terrain === "*") {
+            if (gameBoardMap[y][x].terrain === "*" || gameBoardMap[y][x].terrain === "X") {
                 ctx.drawImage(bricksImg, 
-                    gameCellWidth * x, gameCellHeight * y,
+                    gameCellWidth * x, gameCellHeight * (y - swipeAnimation),
                     gameCellWidth, gameCellHeight)
             }
             else if (gameBoardMap[y][x].terrain === "+") {
                 ctx.drawImage(donutImg, 
-                    gameCellWidth * x, gameCellHeight * y,
+                    gameCellWidth * x, gameCellHeight * (y - swipeAnimation),
                     gameCellWidth, gameCellHeight)
             }
         }
@@ -248,13 +257,13 @@ function drawGameBoard() {
     // draw monsters
     monsters.forEach(monster => {
         ctx.drawImage (monster.img, 
-            gameCellWidth * monster.x, gameCellHeight * monster.y,
+            gameCellWidth * monster.x, gameCellHeight * (monster.y - swipeAnimation),
             gameCellWidth, gameCellHeight)
         })
     
     // draw player
     ctx.drawImage (player.img, 
-        gameCellWidth * player.x, gameCellHeight * player.y,
+        gameCellWidth * player.x, gameCellHeight * (player.y - swipeAnimation),
         gameCellWidth, gameCellHeight)
     
     
@@ -313,6 +322,7 @@ function movePlayer() {
     if (gameBoardMap[player.y][player.x].terrain === "+") {
         // eat a donut
         gameBoardMap[player.y][player.x].terrain = " ";
+        donutsRemaining --;
         player.img = tongueFace;
         clearInterval(player.facetimeout);
         player.facetimeout = setTimeout(() => {
@@ -320,6 +330,44 @@ function movePlayer() {
             player.img = smileFace;
         }, 100)
         console.log('ate a donut');
+        // was that the last of them??
+        if (donutsRemaining === 0) {
+            // X's on map explode
+            gameBoardMap.forEach((row, y) => {
+                row.forEach((location, x) => {
+                    if (location.terrain === "X") {
+                        gameBoardMap[y][x].terrain = "O";
+                        gameBoardMap[y][x].passable = true;
+                        let explosionImg = $("<img>")
+                            .attr("src", "/images/boom.gif")
+                            .css({
+                                "top": y/gameBoardHeight*100 + "vmin",
+                                "left": x/gameBoardWidth*100 + "vmin",
+                                "height": 1/gameBoardHeight*100 + "vmin",
+                                "width": 1/gameBoardWidth*100 + "vmin",
+                                "z-index": "100"
+                            })
+                            .addClass("blockimg")
+                            .appendTo(document.body)
+                        setTimeout(() => {
+                            explosionImg.remove();
+                        }, 1000);
+                    }
+                })
+            })
+        }
+    }
+    if (gameBoardMap[player.y][player.x].terrain === "O") {
+        // next level
+        console.log("next level!");
+        $("#gameCanvas").addClass("swipeUp");
+        swipeInterval = setInterval(() => {
+            swipeAnimation ++;
+        }, 33);
+        setTimeout(() => {
+            clearInterval(swipeInterval);
+            window.location.href="/next/";
+        }, 1000);
     }
 }
 
