@@ -16,7 +16,8 @@ const playerControls = {
     ArrowUp: false, 
     ArrowDown: false, 
     ArrowLeft: false, 
-    ArrowRight: false
+    ArrowRight: false,
+    MouseButon: false
 } 
 
 const directions = [
@@ -146,6 +147,25 @@ let monsters = [];
 
 $(document).ready(() => {
 
+    // player input
+    $(document).on("keydown", function(e) {
+        playerControls[e.key] = true
+    })
+    $(document).on("keyup", function(e) {
+        playerControls[e.key] = false;
+    })
+    $(document).on("mousedown", function(e) {
+        playerControls.MouseButon = true;
+    })
+    $(document).on("mouseup", function(e) {
+        playerControls.MouseButon = false;
+    })
+    
+    $("#gameCanvas").mousemove(function(event) {
+        mousePos = {x: event.clientX / $(this).width(), y: event.clientY / $(this).height()}
+        // $("#mousepos").text(event.clientX + " " + event.clientY);
+    })
+        
     // load images
     bricksImg = document.getElementById("bricksImg")
     smileFace = document.getElementById("smileFace")
@@ -158,6 +178,8 @@ $(document).ready(() => {
     requestAnimationFrame(drawGameBoard);
 
 })
+
+let mousePos ={x: 0, y: 0};
 
 function loadGame() {
     // reset monsters and player
@@ -187,14 +209,6 @@ function loadGame() {
     // calculate dimensions
     gameCellWidth = canvas.width / gameBoardWidth;
     gameCellHeight = canvas.height / gameBoardHeight;
-
-    // player input
-    $(document).on("keydown", function(e) {
-        playerControls[e.key] = true
-    })
-    $(document).on("keyup", function(e) {
-        playerControls[e.key] = false;
-    })
 
 }
 
@@ -238,27 +252,46 @@ function drawGameBoard() {
 
 function movePlayer() {
     let moved = false;
-    // console.log('input processed');
-    if (playerControls.ArrowUp) {
+
+    let xdif = Math.round(mousePos.x * gameBoardWidth) - player.x;
+    let ydif = Math.round(mousePos.y * gameBoardHeight) - player.y;
+    let moveUp, moveDown, moveLeft, moveRight;
+
+    if (playerControls.MouseButon) {
+        if (xdif > 0) {
+            moveRight = true;
+        }
+        else if (xdif < 0) {
+            moveLeft = true;
+        }
+        if (ydif < 0) {
+            moveUp = true;
+        }
+        else if (ydif > 0) {
+            moveDown = true;
+        }
+    
+    }
+    if (playerControls.ArrowUp || moveUp) {
         if (player.y > 0 && gameBoardMap[player.y - 1][player.x].passable) {
             --player.y;
             moved = true;
         }
     }
-    if (playerControls.ArrowDown && !moved) {
+    if ((playerControls.ArrowDown || moveDown) && !moved) {
         if (player.y < gameBoardHeight - 1 
             && gameBoardMap[player.y + 1][player.x].passable) {
             ++player.y;
             moved = true;
         }
     }
-    if (playerControls.ArrowLeft && !moved) {
+    if ((playerControls.ArrowLeft || moveLeft) && !moved ) {
         if (player.x > 0 && gameBoardMap[player.y][player.x-1].passable) {
             --player.x;
             moved = true;
         }
     }
-    if (playerControls.ArrowRight && !moved) {
+    if ((playerControls.ArrowRight || moveRight) && !moved ) {
         if (player.x < gameBoardWidth - 1 && gameBoardMap[player.y][player.x + 1].passable) {
             ++player.x;
             moved = true;
