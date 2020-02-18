@@ -174,7 +174,7 @@ $(document).ready(() => {
         playerControls.MouseButon = false;
     })
     
-    $("#gameCanvas").vmousemove(function(event) {
+    $(document).on("vmousemove", "#gameCanvas", function(event) {
         mousePos = {x: event.clientX / $(this).width(), y: event.clientY / $(this).height()}
         // $("#mousepos").text(event.clientX + " " + event.clientY);
     })
