@@ -165,6 +165,19 @@ $(document).ready(() => {
         mousePos = {x: event.clientX / $(this).width(), y: event.clientY / $(this).height()}
         // $("#mousepos").text(event.clientX + " " + event.clientY);
     })
+
+    // phone events??
+    $(document).on("vmousedown", function(e) {
+        playerControls.MouseButon = true;
+    })
+    $(document).on("vmouseup", function(e) {
+        playerControls.MouseButon = false;
+    })
+    
+    $("#gameCanvas").vmousemove(function(event) {
+        mousePos = {x: event.clientX / $(this).width(), y: event.clientY / $(this).height()}
+        // $("#mousepos").text(event.clientX + " " + event.clientY);
+    })
         
     // load images
     bricksImg = document.getElementById("bricksImg")
