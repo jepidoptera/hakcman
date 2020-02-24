@@ -19,7 +19,7 @@ const playerControls = {
     ArrowLeft: false, 
     ArrowRight: false,
     MouseButon: false,
-    latestKey: null
+    latestKeys: []
 } 
 
 const directions = [
@@ -160,10 +160,15 @@ $(document).ready(() => {
     // player input
     $(document).on("keydown", function(e) {
         playerControls[e.key] = true
-        playerControls.latestKey = e.key;
+        if (!playerControls.latestKeys.includes(e.key)) {
+            playerControls.latestKeys.push(e.key);
+        }
     })
     $(document).on("keyup", function(e) {
         playerControls[e.key] = false;
+        if (playerControls.latestKeys.includes(e.key)) {
+            playerControls.latestKeys.splice(playerControls.latestKeys.indexOf(e.key), 1);
+        }
     })
     $(document).on("mousedown", function(e) {
         playerControls.MouseButon = true;
@@ -312,29 +317,32 @@ function movePlayer() {
         }
     }
 
-    if (playerControls.ArrowUp || moveUp) {
-        if (player.y > 0 && gameBoardMap[player.y - 1][player.x].passable) {
-            --player.y;
-            moved = true;
+    for (let i = playerControls.latestKeys.length - 1; i >= 0; i--) {
+        let key = playerControls.latestKeys[i];
+        if (key === "ArrowUp" || moveUp) {
+            if (player.y > 0 && gameBoardMap[player.y - 1][player.x].passable) {
+                --player.y;
+                moved = true;
+            }
         }
-    }
-    if ((playerControls.ArrowDown || moveDown) && !moved) {
-        if (player.y < gameBoardHeight - 1 
-            && gameBoardMap[player.y + 1][player.x].passable) {
-            ++player.y;
-            moved = true;
+        if ((key === "ArrowDown"  || moveDown) && !moved) {
+            if (player.y < gameBoardHeight - 1 
+                && gameBoardMap[player.y + 1][player.x].passable) {
+                ++player.y;
+                moved = true;
+            }
         }
-    }
-    if ((playerControls.ArrowLeft || moveLeft) && !moved ) {
-        if (player.x > 0 && gameBoardMap[player.y][player.x-1].passable) {
-            --player.x;
-            moved = true;
+        if ((key === "ArrowLeft"  || moveLeft) && !moved ) {
+            if (player.x > 0 && gameBoardMap[player.y][player.x-1].passable) {
+                --player.x;
+                moved = true;
+            }
         }
-    }
-    if ((playerControls.ArrowRight || moveRight) && !moved ) {
-        if (player.x < gameBoardWidth - 1 && gameBoardMap[player.y][player.x + 1].passable) {
-            ++player.x;
-            moved = true;
+        if ((key === "ArrowRight"  || moveRight) && !moved ) {
+            if (player.x < gameBoardWidth - 1 && gameBoardMap[player.y][player.x + 1].passable) {
+                ++player.x;
+                moved = true;
+            }
         }
     }
     if (gameBoardMap[player.y][player.x].terrain === "+") {
