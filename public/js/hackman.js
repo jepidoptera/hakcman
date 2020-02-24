@@ -47,7 +47,8 @@ class Player {
         this.facetimeout = null;
         this.img = smileFace;
         this.dead = false;
-        this.moveInterval = setInterval(movePlayer, 100);
+        this.speed = 10;
+        this.moveInterval = setInterval(movePlayer, 1000 / this.speed);
     }
 
     die() {
@@ -72,7 +73,7 @@ class Monster {
         this.direction = [1, 0];
         if (name === "devil") {
             this.img = devilFace;
-            this.speed = 16;
+            this.speed = 10;
         }
         else {
             this.img = angryFace;
@@ -86,7 +87,8 @@ class Monster {
         // monster movement rules:
 
         // 1. don't reverse course unless there is no other option, or
-        // 2. when a new path (which isn't a course reversal) becomes available, (randomly) consider taking it
+        // 2. when a new path (which isn't a course reversal) becomes available, 
+        // (randomly) consider taking it
 
 
         // check which options are available to move towards
@@ -245,7 +247,7 @@ function loadGame() {
     })
 
     // testing::
-    // donutsRemaining = 1;
+    donutsRemaining = 1;
 
     // load canvas
     canvas = document.getElementById("gameCanvas");
@@ -279,6 +281,7 @@ function drawGameBoard() {
 
     // draw monsters
     monsters.forEach(monster => {
+
         ctx.drawImage (monster.img, 
             gameCellWidth * monster.x, gameCellHeight * (monster.y - swipeAnimation),
             gameCellWidth, gameCellHeight)
@@ -368,7 +371,8 @@ function movePlayer() {
                             .attr("src", "/images/boom.gif")
                             .css({
                                 "top": y/gameBoardHeight*100 + "vmin",
-                                "left": x/gameBoardWidth*100 + "vmin",
+                                "left": "Calc(" + x/gameBoardWidth*100 + "vmin + " + 
+                                ($(document).width() - $("#gameCanvas").width())/ 2 + "px)",
                                 "height": 1/gameBoardHeight*100 + "vmin",
                                 "width": 1/gameBoardWidth*100 + "vmin",
                                 "z-index": "100"
