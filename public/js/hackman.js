@@ -247,7 +247,7 @@ function loadGame() {
     })
 
     // testing::
-    donutsRemaining = 1;
+    // donutsRemaining = 1;
 
     // load canvas
     canvas = document.getElementById("gameCanvas");
