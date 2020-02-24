@@ -10,6 +10,7 @@ var bricksImg;
 var smileFace;
 var tongueFace;
 var angryFace;
+var devilFace;
 var deadFace;
 
 const playerControls = {
@@ -17,7 +18,8 @@ const playerControls = {
     ArrowDown: false, 
     ArrowLeft: false, 
     ArrowRight: false,
-    MouseButon: false
+    MouseButon: false,
+    latestKey: null
 } 
 
 const directions = [
@@ -64,13 +66,19 @@ class Player {
 let player;
 
 class Monster {
-    constructor(x, y) {
+    constructor(x, y, name = "normie") {
         this.x = x;
         this.y = y;
         this.direction = [1, 0];
-        this.img = angryFace;
+        if (name === "devil") {
+            this.img = devilFace;
+            this.speed = 16;
+        }
+        else {
+            this.img = angryFace;
+            this.speed = 6;
+        }
         this.direction = directions[0];
-        this.speed = 6;
         this.moveInterval = setInterval(() => this.move(), 1000 / this.speed)
     }
 
@@ -152,6 +160,7 @@ $(document).ready(() => {
     // player input
     $(document).on("keydown", function(e) {
         playerControls[e.key] = true
+        playerControls.latestKey = e.key;
     })
     $(document).on("keyup", function(e) {
         playerControls[e.key] = false;
@@ -186,6 +195,7 @@ $(document).ready(() => {
     smileFace = document.getElementById("smileFace")
     tongueFace = document.getElementById("tongueFace")
     angryFace = document.getElementById("angryFace")
+    devilFace = document.getElementById("devilFace")
     deadFace = document.getElementById("deadFace")
 
     loadGame();
@@ -214,8 +224,16 @@ function loadGame() {
                 monsters.push(new Monster(x, y));
                 char = ' ';
             }
+            if (char === "D") {
+                monsters.push(new Monster(x, y, "devil"));
+                char = ' ';
+            }
             if (char === "+") {
                 donutsRemaining ++;
+            }
+            if (char === "H") {
+                player.x = x;
+                player.y = y;
             }
             gameBoardMap[y][x] = new mapLocation(char);
         })
@@ -292,8 +310,8 @@ function movePlayer() {
         else if (ydif > 0) {
             moveDown = true;
         }
-    
     }
+
     if (playerControls.ArrowUp || moveUp) {
         if (player.y > 0 && gameBoardMap[player.y - 1][player.x].passable) {
             --player.y;
@@ -366,7 +384,7 @@ function movePlayer() {
         }, 33);
         setTimeout(() => {
             clearInterval(swipeInterval);
-            window.location.href="/next/";
+            window.location.href="/game/" + (parseInt($("#levelNumber").text()) + 1);
         }, 1000);
     }
 }
