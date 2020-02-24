@@ -12,3 +12,8 @@ html, body {
 .hidden {
     display: none;
 }
+
+.blockimg {
+    position: absolute;
+    display: block;
+}
