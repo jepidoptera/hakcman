@@ -32,12 +32,13 @@ app.get ("/", (req, res) => {
     res.render("index");
 })
 
-app.get('/game/:levelId', (req, res) => {
-    const levelData = fs.readFileSync(`public/levels/${levelID}.lvl`).toString();
+app.get('/game/:levelID', (req, res) => {
+    const levelData = fs.readFileSync(`public/levels/level${req.params.levelID}.lvl`)
+    .toString();
     // see what we've got
     console.log(levelData);
     // render this level
-    res.render("game", {levelData: levelData, levelNumber: levelID});
+    res.render("game", {levelData: levelData, levelNumber: req.params.levelID});
 })
 
 app.listen(port);
