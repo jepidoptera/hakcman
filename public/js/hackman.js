@@ -19,7 +19,8 @@ const playerControls = {
     ArrowLeft: false, 
     ArrowRight: false,
     MouseButon: false,
-    latestKeys: []
+    latestKeys: [],
+    letOffKeys: []
 } 
 
 const directions = [
@@ -28,11 +29,12 @@ const directions = [
     {x:-1, y:0, index:2}, 
     {x:0, y:-1, index:3}
 ]
+const noDirection = {x: 0, y: 0, index: -1};
 
 class mapLocation {
     constructor(terrain) {
         this.terrain = terrain;
-        this.passable = (terrain === "*" || terrain === "X") ? false : true;
+        this.passable = (terrain === "*" || terrain === "X" || terrain === "x") ? false : true;
     }
 }
 var gameBoardMap;
@@ -48,11 +50,14 @@ class Player {
         this.img = smileFace;
         this.dead = false;
         this.speed = 10;
+        this.direction = noDirection;
         this.moveInterval = setInterval(movePlayer, 1000 / this.speed);
+        this.lastFrame = Date.now();
     }
 
     die() {
         this.dead = true;
+        this.direction = noDirection;
         clearInterval(this.moveInterval);
         this.img = deadFace;
         // remove monsters
@@ -63,6 +68,8 @@ class Player {
             loadGame();
         }, 2000);
     }
+    latestKeys = [];
+    letOffKeys = [];
 }
 let player;
 
@@ -171,9 +178,7 @@ $(document).ready(() => {
     })
     $(document).on("keyup", function(e) {
         playerControls[e.key] = false;
-        if (playerControls.latestKeys.includes(e.key)) {
-            playerControls.latestKeys.splice(playerControls.latestKeys.indexOf(e.key), 1);
-        }
+        player.letOffKeys.push(e.key);
     })
     $(document).on("mousedown", function(e) {
         playerControls.MouseButon = true;
@@ -269,7 +274,7 @@ function drawGameBoard() {
     for (let x = 0; x < gameBoardWidth; x++) {
         for (let y = 0; y < gameBoardHeight; y++) {
 
-            if (gameBoardMap[y][x].terrain === "*" || gameBoardMap[y][x].terrain === "X") {
+            if (gameBoardMap[y][x].terrain === "*" || gameBoardMap[y][x].terrain.toLowerCase() === "x") {
                 ctx.drawImage(bricksImg, 
                     gameCellWidth * x, gameCellHeight * (y - swipeAnimation),
                     gameCellWidth, gameCellHeight)
@@ -291,8 +296,12 @@ function drawGameBoard() {
         })
     
     // draw player
+    player.offset = {
+        x: player.direction.x * (Date.now() - player.lastFrame) / 1000 * player.speed,
+        y: player.direction.y * (Date.now() - player.lastFrame) / 1000 * player.speed,
+    }
     ctx.drawImage (player.img, 
-        gameCellWidth * player.x, gameCellHeight * (player.y - swipeAnimation),
+        gameCellWidth * (player.x + player.offset.x), gameCellHeight * (player.y + player.offset.y - swipeAnimation),
         gameCellWidth, gameCellHeight)
     
     
@@ -302,7 +311,7 @@ function drawGameBoard() {
 }
 
 function movePlayer() {
-    let moved = false;
+    player.lastFrame = Date.now();
 
     let xdif = Math.round(mousePos.x * gameBoardWidth) - player.x;
     let ydif = Math.round(mousePos.y * gameBoardHeight) - player.y;
@@ -323,34 +332,40 @@ function movePlayer() {
         }
     }
 
+    player.direction = noDirection;
     for (let i = playerControls.latestKeys.length - 1; i >= 0; i--) {
         let key = playerControls.latestKeys[i];
-        if ((key === "ArrowUp" || moveUp) && !moved) {
-            if (player.y > 0 && gameBoardMap[player.y - 1][player.x].passable) {
-                --player.y;
-                moved = true;
-            }
+        if ((key === "ArrowUp" || moveUp) && player.y > 0) {
+            player.direction = directions[3];
         }
-        if ((key === "ArrowDown"  || moveDown) && !moved) {
-            if (player.y < gameBoardHeight - 1 
-                && gameBoardMap[player.y + 1][player.x].passable) {
-                ++player.y;
-                moved = true;
-            }
+        else if ((key === "ArrowDown"  || moveDown) && player.y < gameBoardHeight - 1) {
+                player.direction = directions[1];
         }
-        if ((key === "ArrowLeft"  || moveLeft) && !moved ) {
-            if (player.x > 0 && gameBoardMap[player.y][player.x-1].passable) {
-                --player.x;
-                moved = true;
-            }
+        else if ((key === "ArrowLeft"  || moveLeft) && player.x > 0) {
+            player.direction = directions[2];
         }
-        if ((key === "ArrowRight"  || moveRight) && !moved ) {
-            if (player.x < gameBoardWidth - 1 && gameBoardMap[player.y][player.x + 1].passable) {
-                ++player.x;
-                moved = true;
-            }
+        else if ((key === "ArrowRight"  || moveRight) && player.x < gameBoardWidth - 1) {
+            player.direction = directions[0];
         }
+        if (gameBoardMap[player.y + player.direction.y][player.x + player.direction.x].passable) {
+            player.x += player.direction.x;
+            player.y += player.direction.y;
+            break;
+        }
+        else player.direction = noDirection;
     }
+    if (!gameBoardMap[player.y + player.direction.y][player.x + player.direction.x].passable) {
+        player.direction = noDirection;
+    }
+
+    // process keys which have been released
+    player.letOffKeys.forEach(offKey => {
+        if (playerControls.latestKeys.includes(offKey)) {
+            playerControls.latestKeys.splice(playerControls.latestKeys.indexOf(offKey), 1);
+        }
+    })
+    player.letOffKeys = [];
+
     if (gameBoardMap[player.y][player.x].terrain === "+") {
         // eat a donut
         gameBoardMap[player.y][player.x].terrain = " ";
