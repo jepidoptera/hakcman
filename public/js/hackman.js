@@ -13,12 +13,6 @@ var angryFace;
 var devilFace;
 var deadFace;
 
-const playerControls = {
-    MouseButon: false,
-    latestKeys: [],
-    letOffKeys: []
-} 
-
 const directions = [
     {x:1, y:0, index:0}, 
     {x:0, y:1, index:1}, 
@@ -49,13 +43,18 @@ class Player {
         this.direction = noDirection;
         this.moveInterval = setInterval(movePlayer, 1000 / this.speed);
         this.lastFrame = Date.now();
+        this.controls = {
+            mouseButton: false,
+            latestKeys: [],
+            letOffKeys: []
+        } 
     }
 
     die() {
         this.dead = true;
         this.direction = noDirection;
-        this.latestKeys = [];
-        this.letOffKeys = [];
+        this.controls.latestKeys = [];
+        this.controls.letOffKeys = [];
         clearInterval(this.moveInterval);
         this.img = deadFace;
         // remove monsters
@@ -169,20 +168,18 @@ $(document).ready(() => {
 
     // player input
     $(document).on("keydown", function(e) {
-        playerControls[e.key] = true
-        if (!playerControls.latestKeys.includes(e.key)) {
-            playerControls.latestKeys.push(e.key);
+        if (!player.controls.latestKeys.includes(e.key)) {
+            player.controls.latestKeys.push(e.key);
         }
     })
     $(document).on("keyup", function(e) {
-        playerControls[e.key] = false;
         player.letOffKeys.push(e.key);
     })
     $(document).on("mousedown", function(e) {
-        playerControls.MouseButon = true;
+        player.controls.mouseButton = true;
     })
     $(document).on("mouseup", function(e) {
-        playerControls.MouseButon = false;
+        player.controls.mouseButton = false;
     })
     
     $("#gameCanvas").mousemove(function(event) {
@@ -192,10 +189,10 @@ $(document).ready(() => {
 
     // phone events??
     $(document).on("vmousedown", function(e) {
-        playerControls.MouseButon = true;
+        player.controls.mouseButton = true;
     })
     $(document).on("vmouseup", function(e) {
-        playerControls.MouseButon = false;
+        player.controls.mouseButton = false;
     })
     
     $(document).on("vmousemove", function(event) {
@@ -318,7 +315,7 @@ function movePlayer() {
     let ydif = Math.round(mousePos.y * gameBoardHeight) - player.y;
     let moveUp, moveDown, moveLeft, moveRight;
 
-    if (playerControls.MouseButon) {
+    if (player.controls.mouseButton) {
         if (xdif > 0) {
             moveRight = true;
         }
@@ -334,8 +331,8 @@ function movePlayer() {
     }
 
     player.direction = noDirection;
-    for (let i = playerControls.latestKeys.length - 1; i >= 0; i--) {
-        let key = playerControls.latestKeys[i];
+    for (let i = player.controls.latestKeys.length - 1; i >= 0; i--) {
+        let key = player.controls.latestKeys[i];
         if ((key === "ArrowUp" || moveUp) && player.y > 0) {
             player.direction = directions[3];
         }
@@ -359,8 +356,8 @@ function movePlayer() {
 
     // process keys which have been released
     player.letOffKeys.forEach(offKey => {
-        if (playerControls.latestKeys.includes(offKey)) {
-            playerControls.latestKeys.splice(playerControls.latestKeys.indexOf(offKey), 1);
+        if (player.controls.latestKeys.includes(offKey)) {
+            player.controls.latestKeys.splice(player.controls.latestKeys.indexOf(offKey), 1);
         }
     })
     player.letOffKeys = [];
