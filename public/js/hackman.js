@@ -14,10 +14,6 @@ var devilFace;
 var deadFace;
 
 const playerControls = {
-    ArrowUp: false, 
-    ArrowDown: false, 
-    ArrowLeft: false, 
-    ArrowRight: false,
     MouseButon: false,
     latestKeys: [],
     letOffKeys: []
@@ -58,6 +54,8 @@ class Player {
     die() {
         this.dead = true;
         this.direction = noDirection;
+        this.latestKeys = [];
+        this.letOffKeys = [];
         clearInterval(this.moveInterval);
         this.img = deadFace;
         // remove monsters
@@ -313,6 +311,9 @@ function drawGameBoard() {
 function movePlayer() {
     player.lastFrame = Date.now();
 
+    player.x += player.direction.x;
+    player.y += player.direction.y;
+
     let xdif = Math.round(mousePos.x * gameBoardWidth) - player.x;
     let ydif = Math.round(mousePos.y * gameBoardHeight) - player.y;
     let moveUp, moveDown, moveLeft, moveRight;
@@ -348,15 +349,13 @@ function movePlayer() {
             player.direction = directions[0];
         }
         if (gameBoardMap[player.y + player.direction.y][player.x + player.direction.x].passable) {
-            player.x += player.direction.x;
-            player.y += player.direction.y;
             break;
         }
         else player.direction = noDirection;
     }
-    if (!gameBoardMap[player.y + player.direction.y][player.x + player.direction.x].passable) {
-        player.direction = noDirection;
-    }
+    // if (!gameBoardMap[player.y + player.direction.y][player.x + player.direction.x].passable) {
+    //     player.direction = noDirection;
+    // }
 
     // process keys which have been released
     player.letOffKeys.forEach(offKey => {
@@ -383,6 +382,7 @@ function movePlayer() {
             gameBoardMap.forEach((row, y) => {
                 row.forEach((location, x) => {
                     if (location.terrain === "X" || location.terrain === "x") {
+                        // capital Xs become escape route
                         if (location.terrain === "X") gameBoardMap[y][x].terrain = "O";
                         gameBoardMap[y][x].passable = true;
                         let explosionImg = $("<img>")
