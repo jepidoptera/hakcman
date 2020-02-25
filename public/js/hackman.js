@@ -367,8 +367,8 @@ function movePlayer() {
             // X's on map explode
             gameBoardMap.forEach((row, y) => {
                 row.forEach((location, x) => {
-                    if (location.terrain === "X") {
-                        gameBoardMap[y][x].terrain = "O";
+                    if (location.terrain === "X" || location.terrain === "x") {
+                        if (location.terrain === "X") gameBoardMap[y][x].terrain = "O";
                         gameBoardMap[y][x].passable = true;
                         let explosionImg = $("<img>")
                             .attr("src", "/images/boom.gif")
