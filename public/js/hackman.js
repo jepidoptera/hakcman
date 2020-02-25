@@ -139,6 +139,9 @@ class Monster {
                 this.direction = directions[(this.direction.index + 1) % directions.length];
                 tries ++;
             }
+        
+        // in the event that they are totally stuck, don't move this round
+        if (tries == 4) this.direction = {x: 0, y: 0, index: -1};
 
         gameBoardMap[this.y][this.x].passable = true;
         this.x += this.direction.x;
@@ -322,7 +325,7 @@ function movePlayer() {
 
     for (let i = playerControls.latestKeys.length - 1; i >= 0; i--) {
         let key = playerControls.latestKeys[i];
-        if (key === "ArrowUp" || moveUp) {
+        if ((key === "ArrowUp" || moveUp) && !moved) {
             if (player.y > 0 && gameBoardMap[player.y - 1][player.x].passable) {
                 --player.y;
                 moved = true;
@@ -356,7 +359,7 @@ function movePlayer() {
         clearInterval(player.facetimeout);
         player.facetimeout = setTimeout(() => {
             // reset player emoji
-            player.img = smileFace;
+            if (player.img !== deadFace) player.img = smileFace;
         }, 100)
         console.log('ate a donut');
         // was that the last of them??
