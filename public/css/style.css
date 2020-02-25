@@ -4,6 +4,7 @@ html, body {
     overflow: hidden;
     text-align: center;
     background-color:#1F1F1F;
+    color: white;
 }
 
 #gameCanvas {
