@@ -414,5 +414,11 @@ function movePlayer() {
             window.location.href="/game/" + (parseInt($("#levelNumber").text()) + 1);
         }, 1000);
     }
+    // check monsters
+    monsters.forEach(monster => {
+        if (monster.x === player.x && monster.y === player.y) {
+            player.die();
+        }
+    })
 }
 
