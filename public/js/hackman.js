@@ -51,17 +51,20 @@ class Player {
     }
 
     die() {
+        if (this.dead) return;
         this.dead = true;
         this.direction = noDirection;
         this.controls.latestKeys = [];
         this.controls.letOffKeys = [];
         clearInterval(this.moveInterval);
         this.img = deadFace;
-        // remove monsters
-        monsters.forEach(monster => {
-            clearInterval(monster.moveInterval);
-        })
         setTimeout(() => {
+            // remove monsters
+            monsters.forEach(monster => {
+                clearInterval(monster.moveInterval);
+                monster.direction = noDirection;
+            })
+            // reload game
             loadGame();
         }, 2000);
     }
@@ -75,6 +78,7 @@ class Monster {
         this.x = x;
         this.y = y;
         this.direction = [1, 0];
+        this.lastFrame = Date.now();
         if (name === "devil") {
             this.img = devilFace;
             this.speed = 10;
@@ -93,6 +97,10 @@ class Monster {
         // 1. don't reverse course unless there is no other option, or
         // 2. when a new path (which isn't a course reversal) becomes available, 
         // (randomly) consider taking it
+        gameBoardMap[this.y][this.x].passable = true;
+        this.x += this.direction.x;
+        this.y += this.direction.y;
+        gameBoardMap[this.y][this.x].passable = false;
 
 
         // check which options are available to move towards
@@ -147,11 +155,6 @@ class Monster {
         // in the event that they are totally stuck, don't move this round
         if (tries == 4) this.direction = {x: 0, y: 0, index: -1};
 
-        gameBoardMap[this.y][this.x].passable = true;
-        this.x += this.direction.x;
-        this.y += this.direction.y;
-        gameBoardMap[this.y][this.x].passable = false;
-
         this.moveOptions = newMoveOptions | 2 ** this.direction.index;
 
         // did we get 'em??
@@ -160,6 +163,7 @@ class Monster {
             this.y -= this.direction.y;
             player.die();
         }
+        this.lastFrame = Date.now();
     }
 }
 let monsters = [];
@@ -214,7 +218,7 @@ $(document).ready(() => {
 
 })
 
-let mousePos ={x: 0, y: 0};
+let mousePos = {x: 0, y: 0};
 
 function loadGame() {
     // reset monsters, player, and donuts
@@ -284,9 +288,13 @@ function drawGameBoard() {
 
     // draw monsters
     monsters.forEach(monster => {
-
+        monster.offset = {
+            x: monster.direction.x * (Date.now() - monster.lastFrame) / 1000 * monster.speed,
+            y: monster.direction.y * (Date.now() - monster.lastFrame) / 1000 * monster.speed,
+        }
         ctx.drawImage (monster.img, 
-            gameCellWidth * monster.x, gameCellHeight * (monster.y - swipeAnimation),
+            gameCellWidth * (monster.x + monster.offset.x), 
+            gameCellHeight * (monster.y + monster.offset.y - swipeAnimation),
             gameCellWidth, gameCellHeight)
         })
     
