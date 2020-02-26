@@ -10,6 +10,7 @@ var bricksImg;
 var smileFace;
 var tongueFace;
 var angryFace;
+var irkFace;
 var devilFace;
 var deadFace;
 
@@ -79,6 +80,10 @@ class Monster {
         if (name === "devil") {
             this.img = devilFace;
             this.speed = 10;
+        }
+        else if (name === "weak") {
+            this.img = irkFace;
+            this.speed = 4;
         }
         else {
             this.img = angryFace;
@@ -206,6 +211,7 @@ $(document).ready(() => {
     smileFace = document.getElementById("smileFace")
     tongueFace = document.getElementById("tongueFace")
     angryFace = document.getElementById("angryFace")
+    irkFace = document.getElementById("irkedFace")
     devilFace = document.getElementById("devilFace")
     deadFace = document.getElementById("deadFace")
 
@@ -231,6 +237,10 @@ function loadGame() {
     mapText.forEach((row, y) => {
         gameBoardMap[y] = Array(row.length)
         row.forEach((char, x) => {
+            if (char === "m") {
+                monsters.push(new Monster(x, y, "weak"));
+                char = ' ';
+            }
             if (char === "M") {
                 monsters.push(new Monster(x, y));
                 char = ' ';
