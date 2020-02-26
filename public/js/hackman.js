@@ -68,8 +68,6 @@ class Player {
             loadGame();
         }, 2000);
     }
-    latestKeys = [];
-    letOffKeys = [];
 }
 let player;
 
@@ -77,7 +75,6 @@ class Monster {
     constructor(x, y, name = "normie") {
         this.x = x;
         this.y = y;
-        this.direction = [1, 0];
         this.lastFrame = Date.now();
         if (name === "devil") {
             this.img = devilFace;
@@ -87,7 +84,7 @@ class Monster {
             this.img = angryFace;
             this.speed = 6;
         }
-        this.direction = directions[0];
+        this.direction = noDirection;
         this.moveInterval = setInterval(() => this.move(), 1000 / this.speed)
     }
 
@@ -177,7 +174,7 @@ $(document).ready(() => {
         }
     })
     $(document).on("keyup", function(e) {
-        player.letOffKeys.push(e.key);
+        player.controls.letOffKeys.push(e.key);
     })
     $(document).on("mousedown", function(e) {
         player.controls.mouseButton = true;
@@ -363,12 +360,12 @@ function movePlayer() {
     // }
 
     // process keys which have been released
-    player.letOffKeys.forEach(offKey => {
+    player.controls.letOffKeys.forEach(offKey => {
         if (player.controls.latestKeys.includes(offKey)) {
             player.controls.latestKeys.splice(player.controls.latestKeys.indexOf(offKey), 1);
         }
     })
-    player.letOffKeys = [];
+    player.controls.letOffKeys = [];
 
     if (gameBoardMap[player.y][player.x].terrain === "+") {
         // eat a donut
@@ -389,6 +386,7 @@ function movePlayer() {
                     if (location.terrain === "X" || location.terrain === "x") {
                         // capital Xs become escape route
                         if (location.terrain === "X") gameBoardMap[y][x].terrain = "O";
+                        else gameBoardMap[y][x].terrain = " ";
                         gameBoardMap[y][x].passable = true;
                         let explosionImg = $("<img>")
                             .attr("src", "/images/boom.gif")
