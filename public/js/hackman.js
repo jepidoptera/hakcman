@@ -31,6 +31,7 @@ class mapLocation {
 var gameBoardMap;
 var donutsRemaining = Infinity;
 var swipeAnimation = 0;
+let paused = true;
 
 class Player {
     constructor() {
@@ -47,7 +48,7 @@ class Player {
         this.controls = {
             mouseButton: false,
             latestKeys: [],
-            letOffKeys: []
+            letOffKeys: [],
         } 
     }
 
@@ -94,6 +95,7 @@ class Monster {
     }
 
     move() {
+        if (paused) return;
         // monster movement rules:
 
         // 1. don't reverse course unless there is no other option, or
@@ -102,7 +104,6 @@ class Monster {
         gameBoardMap[this.y][this.x].passable = true;
         this.x += this.direction.x;
         this.y += this.direction.y;
-        gameBoardMap[this.y][this.x].passable = false;
 
 
         // check which options are available to move towards
@@ -166,6 +167,8 @@ class Monster {
             player.die();
         }
         this.lastFrame = Date.now();
+        // block off the square we are moving to at this point, so other monsters don't overlap
+        gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].passable = false;
     }
 }
 let monsters = [];
@@ -176,6 +179,10 @@ $(document).ready(() => {
     $(document).on("keydown", function(e) {
         if (!player.controls.latestKeys.includes(e.key)) {
             player.controls.latestKeys.push(e.key);
+        }
+        if (e.key===" ") {
+            if (paused) startGame();
+            else pause();
         }
     })
     $(document).on("keyup", function(e) {
@@ -203,7 +210,6 @@ $(document).ready(() => {
     
     $(document).on("vmousemove", function(event) {
         mousePos = {x: event.pageX / $("#gameCanvas").width(), y: event.clientY / $("#gameCanvas").height()}
-        // $("#mousepos").text(event.clientX + " " + event.clientY);
     })
         
     // load images
@@ -320,7 +326,15 @@ function drawGameBoard() {
 
 }
 
+function pause() { paused = true }
+function unPause() { paused = false }
+function startGame() {
+    unPause();
+    $("#startButton").hide();
+}
+
 function movePlayer() {
+    if (paused) return;
     player.lastFrame = Date.now();
 
     player.x += player.direction.x;
@@ -345,30 +359,6 @@ function movePlayer() {
         }
     }
 
-    player.direction = noDirection;
-    for (let i = player.controls.latestKeys.length - 1; i >= 0; i--) {
-        let key = player.controls.latestKeys[i];
-        if ((key === "ArrowUp" || moveUp) && player.y > 0) {
-            player.direction = directions[3];
-        }
-        else if ((key === "ArrowDown"  || moveDown) && player.y < gameBoardHeight - 1) {
-                player.direction = directions[1];
-        }
-        else if ((key === "ArrowLeft"  || moveLeft) && player.x > 0) {
-            player.direction = directions[2];
-        }
-        else if ((key === "ArrowRight"  || moveRight) && player.x < gameBoardWidth - 1) {
-            player.direction = directions[0];
-        }
-        if (gameBoardMap[player.y + player.direction.y][player.x + player.direction.x].passable) {
-            break;
-        }
-        else player.direction = noDirection;
-    }
-    // if (!gameBoardMap[player.y + player.direction.y][player.x + player.direction.x].passable) {
-    //     player.direction = noDirection;
-    // }
-
     // process keys which have been released
     player.controls.letOffKeys.forEach(offKey => {
         if (player.controls.latestKeys.includes(offKey)) {
@@ -376,6 +366,40 @@ function movePlayer() {
         }
     })
     player.controls.letOffKeys = [];
+
+    
+    let currentDirection = player.direction;
+    let newDirection = undefined;
+    player.direction = noDirection;
+    for (let i = player.controls.latestKeys.length - 1; i >= 0; i--) {
+        let key = player.controls.latestKeys[i];
+        if ((key === "ArrowUp" || moveUp) && player.y > 0) {
+            newDirection = directions[3];
+        }
+        else if ((key === "ArrowDown"  || moveDown) && player.y < gameBoardHeight - 1) {
+            newDirection = directions[1];
+        }
+        else if ((key === "ArrowLeft"  || moveLeft) && player.x > 0) {
+            newDirection = directions[2];
+        }
+        else if ((key === "ArrowRight"  || moveRight) && player.x < gameBoardWidth - 1) {
+            newDirection = directions[0];
+        }
+        if (newDirection && gameBoardMap[player.y + newDirection.y][player.x + newDirection.x].passable) {
+            if (player.direction === noDirection) {
+                player.direction = newDirection;
+            }
+            // always prefer to go in a direction you're not currently going
+            if (newDirection != currentDirection) {
+                player.direction = newDirection;
+                break;
+            } 
+        }
+    }
+    // if (!gameBoardMap[player.y + player.direction.y][player.x + player.direction.x].passable) {
+    //     player.direction = noDirection;
+    // }
+
 
     if (gameBoardMap[player.y][player.x].terrain === "+") {
         // eat a donut
