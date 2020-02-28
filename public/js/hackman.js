@@ -23,15 +23,66 @@ const directions = [
 const noDirection = {x: 0, y: 0, index: -1};
 
 class mapLocation {
-    constructor(terrain) {
-        this.terrain = terrain;
-        this.passable = (terrain === "*" || terrain === "X" || terrain === "x") ? false : true;
+    constructor(char, x, y) {
+        if (char === "m") {
+            monsters.push(new Monster(x, y, "irk"));
+            char = ' ';
+        }
+        if (char === "M") {
+            monsters.push(new Monster(x, y, "angry"));
+            char = ' ';
+        }
+        if (char === "T") {
+            monsters.push(new Monster(x, y, "turd"));
+            char = ' ';
+        }
+        if (char === "D") {
+            monsters.push(new Monster(x, y, "devil"));
+            char = ' ';
+        }
+        if (char === "+") {
+            donutsRemaining ++;
+            let newDonut = new PowerUp(x, y, "donut");
+            donuts.push (newDonut);
+            this.powerUp = newDonut;
+        }
+        if (char === "H") {
+            player.locate(x, y);
+        }
+        this.terrain = char;
+        this.passable = (char === "*" || char === "X" || char === "x") ? false : true;
     }
 }
 var gameBoardMap;
 var donutsRemaining = Infinity;
 var swipeAnimation = 0;
 let paused = true;
+
+class PowerUp {
+    constructor(x, y, type = "donut") {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+        if (type === "donut") {
+            this.char = "+";
+        }
+        this.exists = true;
+    }
+    eat() {
+        if (this.exists) {
+            this.exists = false;
+            gameBoardMap[this.y][this.x].terrain = " ";
+            if (this.type === "donut") donutsRemaining --;
+        }
+    }
+    respawn() {
+        gameBoardMap[this.y][this.x].terrain = this.char;
+        if (this.type === "donut") donutsRemaining ++;
+        this.exists = true;
+    }
+}
+let donuts = [];
+
 
 class Player {
     constructor() {
@@ -52,6 +103,23 @@ class Player {
         } 
     }
 
+    locate(x, y) {
+        this.x = x;
+        this.y = y;
+        this.start_x = x;
+        this.start_y = y;
+    }
+
+    respawn() {
+        gameBoardMap[this.y][this.x].passable = true;
+        this.x = this.start_x;
+        this.y = this.start_y;
+        resetMap();
+        this.dead = false;
+        this.img = smileFace;
+        this.moveInterval = setInterval(movePlayer, 1000 / this.speed);
+    }
+
     die() {
         if (this.dead) return;
         this.dead = true;
@@ -61,13 +129,7 @@ class Player {
         clearInterval(this.moveInterval);
         this.img = deadFace;
         setTimeout(() => {
-            // remove monsters
-            monsters.forEach(monster => {
-                clearInterval(monster.moveInterval);
-                monster.direction = noDirection;
-            })
-            // reload game
-            loadGame();
+           this.respawn();
         }, 2000);
     }
 }
@@ -81,21 +143,34 @@ class Monster {
         if (name === "devil") {
             this.img = devilFace;
             this.speed = 10;
+            this.followDistance = 99;
+        }
+        else if (name === "angry") {
+            this.img = angryFace;
+            this.speed = 6;
+            this.followDistance = 10;
         }
         else if (name === "irk") {
             this.img = irkFace;
             this.speed = 4;
+            this.followDistance = 4;
         }
         else if (name === "turd") {
             this.img = turdFace;
             this.speed = 2;
-        }
-        else {
-            this.img = angryFace;
-            this.speed = 6;
+            this.followDistance = 99;
         }
         this.direction = noDirection;
         this.moveInterval = setInterval(() => this.move(), 1000 / this.speed)
+        this.start_position = {x: x, y: y};
+    }
+
+    respawn() {
+        gameBoardMap[this.y][this.x].passable = true;
+        gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].passable = true;
+        this.x = this.start_position.x;
+        this.y = this.start_position.y;
+        this.direction = noDirection;
     }
 
     move() {
@@ -109,6 +184,14 @@ class Monster {
         this.x += this.direction.x;
         this.y += this.direction.y;
 
+        // did we get 'em??
+        if (this.x === player.x && this.y === player.y) {
+            this.x -= this.direction.x;
+            this.y -= this.direction.y;
+            player.die();
+            this.lastFrame = Date.now();
+            return;
+        }
 
         // check which options are available to move towards
         let newMoveOptions = directions.reduce((sum, direction, i) => {
@@ -125,14 +208,17 @@ class Monster {
         if ((newMoveOptions | this.moveOptions) != this.moveOptions || 
             !(newMoveOptions & 2 ** this.direction.index)) {
             let newDirection = directions[0];
-            // // try to move toward player first
+
             let xdif = player.x - this.x;
             let ydif = player.y - this.y;
-            if (Math.floor(Math.random() * (Math.abs(xdif) + Math.abs(ydif))) < Math.abs(xdif)) {
-                newDirection = xdif > 0 ? directions[0] : directions[2];
-            }
-            else {
-                newDirection = ydif > 0 ? directions[1] : directions[3];
+            if (xdif + ydif < this.followDistance) {
+            // // try to move toward player first
+                 if (Math.floor(Math.random() * (Math.abs(xdif) + Math.abs(ydif))) < Math.abs(xdif)) {
+                    newDirection = xdif > 0 ? directions[0] : directions[2];
+                }
+                else {
+                    newDirection = ydif > 0 ? directions[1] : directions[3];
+                }
             }
             // but if that's not going to work out, due to a wall,
             // or because it would be going backwards...
@@ -164,15 +250,10 @@ class Monster {
 
         this.moveOptions = newMoveOptions | 2 ** this.direction.index;
 
-        // did we get 'em??
-        if (this.x === player.x && this.y === player.y) {
-            this.x -= this.direction.x;
-            this.y -= this.direction.y;
-            player.die();
-        }
-        this.lastFrame = Date.now();
         // block off the square we are moving to at this point, so other monsters don't overlap
         gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].passable = false;
+
+        this.lastFrame = Date.now();
     }
 }
 let monsters = [];
@@ -248,30 +329,7 @@ function loadGame() {
     mapText.forEach((row, y) => {
         gameBoardMap[y] = Array(row.length)
         row.forEach((char, x) => {
-            if (char === "m") {
-                monsters.push(new Monster(x, y, "irk"));
-                char = ' ';
-            }
-            if (char === "M") {
-                monsters.push(new Monster(x, y, "angry"));
-                char = ' ';
-            }
-            if (char === "T") {
-                monsters.push(new Monster(x, y, "turd"));
-                char = ' ';
-            }
-            if (char === "D") {
-                monsters.push(new Monster(x, y, "devil"));
-                char = ' ';
-            }
-            if (char === "+") {
-                donutsRemaining ++;
-            }
-            if (char === "H") {
-                player.x = x;
-                player.y = y;
-            }
-            gameBoardMap[y][x] = new mapLocation(char);
+            gameBoardMap[y][x] = new mapLocation(char, x, y);
         })
     })
 
@@ -286,6 +344,23 @@ function loadGame() {
     gameCellWidth = canvas.width / gameBoardWidth;
     gameCellHeight = canvas.height / gameBoardHeight;
 
+}
+
+function resetMap() {
+    // put back ten donuts
+    const enoughDonuts = donutsRemaining + 10;
+    for (n in donuts) {
+        if (!donuts[n].exists) {
+            donuts[n].respawn();
+        }
+        if (donutsRemaining == enoughDonuts) {
+            break;
+        }
+    }
+    // monsters
+    monsters.forEach(monster => {
+        monster.respawn();
+    })
 }
 
 function drawGameBoard() {
@@ -412,10 +487,10 @@ function movePlayer() {
     // }
 
 
-    if (gameBoardMap[player.y][player.x].terrain === "+") {
-        // eat a donut
-        gameBoardMap[player.y][player.x].terrain = " ";
-        donutsRemaining --;
+    if (gameBoardMap[player.y][player.x].powerUp) {
+
+        gameBoardMap[player.y][player.x].powerUp.eat();
+
         player.img = tongueFace;
         clearInterval(player.facetimeout);
         player.facetimeout = setTimeout(() => {
