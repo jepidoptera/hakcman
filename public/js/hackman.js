@@ -54,6 +54,7 @@ class mapLocation {
     }
 }
 var gameBoardMap;
+var nodeMap;
 var donutsRemaining = Infinity;
 var maximumDonuts = 0;
 var swipeAnimation = 0;
@@ -346,6 +347,12 @@ function loadGame() {
     gameCellWidth = canvas.width / gameBoardWidth;
     gameCellHeight = canvas.height / gameBoardHeight;
 
+    // get a node-based interpretation of the map
+    nodeMap = new Graph(gameBoardMap.map(row => {
+        return row.map(node => {
+            return node.passable ? 1 : 0;
+        })
+    }))
 }
 
 function resetMap() {
