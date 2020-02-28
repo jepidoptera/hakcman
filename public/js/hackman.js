@@ -181,7 +181,7 @@ $(document).ready(() => {
             player.controls.latestKeys.push(e.key);
         }
         if (e.key===" ") {
-            if (paused) startGame();
+            if (paused) unPause();
             else pause();
         }
     })
@@ -302,8 +302,8 @@ function drawGameBoard() {
     // draw monsters
     monsters.forEach(monster => {
         monster.offset = {
-            x: monster.direction.x * (Date.now() - monster.lastFrame) / 1000 * monster.speed,
-            y: monster.direction.y * (Date.now() - monster.lastFrame) / 1000 * monster.speed,
+            x: monster.direction.x * Math.min((Date.now() - monster.lastFrame) / 1000 * monster.speed, 1),
+            y: monster.direction.y * Math.min((Date.now() - monster.lastFrame) / 1000 * monster.speed, 1),
         }
         ctx.drawImage (monster.img, 
             gameCellWidth * (monster.x + monster.offset.x), 
@@ -313,8 +313,8 @@ function drawGameBoard() {
     
     // draw player
     player.offset = {
-        x: player.direction.x * (Date.now() - player.lastFrame) / 1000 * player.speed,
-        y: player.direction.y * (Date.now() - player.lastFrame) / 1000 * player.speed,
+        x: player.direction.x * Math.min((Date.now() - player.lastFrame) / 1000 * player.speed, 1),
+        y: player.direction.y * Math.min((Date.now() - player.lastFrame) / 1000 * player.speed, 1)
     }
     ctx.drawImage (player.img, 
         gameCellWidth * (player.x + player.offset.x), gameCellHeight * (player.y + player.offset.y - swipeAnimation),
@@ -326,10 +326,12 @@ function drawGameBoard() {
 
 }
 
-function pause() { paused = true }
-function unPause() { paused = false }
-function startGame() {
-    unPause();
+function pause() { 
+    paused = true 
+    $("#startButton").show();
+}
+function unPause() {
+    paused = false;
     $("#startButton").hide();
 }
 
