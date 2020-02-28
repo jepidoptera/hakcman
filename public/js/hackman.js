@@ -146,6 +146,7 @@ class Monster {
             this.img = devilFace;
             this.speed = 10;
             this.followDistance = 99;
+            this.pathFinder = 0.01;
         }
         else if (name === "angry") {
             this.img = angryFace;
@@ -161,7 +162,7 @@ class Monster {
             this.img = turdFace;
             this.speed = 2;
             this.followDistance = 99;
-            this.pathFinder = true;
+            this.pathFinder = 1.0;
         }
         this.direction = noDirection;
         this.path = [];
@@ -207,7 +208,7 @@ class Monster {
             }
         }, 0);
 
-        if (this.pathFinder) this.findPath();
+        if (this.pathFinder > Math.random()) this.findPath();
         if (this.path.length === 0) {
         // non-pathfinding monster movement rules:
 
