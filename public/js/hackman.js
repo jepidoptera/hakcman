@@ -55,6 +55,7 @@ class mapLocation {
 }
 var gameBoardMap;
 var donutsRemaining = Infinity;
+var maximumDonuts = 0;
 var swipeAnimation = 0;
 let paused = true;
 
@@ -335,6 +336,7 @@ function loadGame() {
 
     // testing::
     // donutsRemaining = 1;
+    maximumDonuts = donutsRemaining;
 
     // load canvas
     canvas = document.getElementById("gameCanvas");
@@ -347,19 +349,29 @@ function loadGame() {
 }
 
 function resetMap() {
-    // put back ten donuts
-    const enoughDonuts = donutsRemaining + 10;
-    for (n in donuts) {
+    // put back ten percent of donuts
+    const enoughDonuts = Math.min(donutsRemaining + maximumDonuts / 10, maximumDonuts);
+    const firstDonut = Math.floor(Math.random() * maximumDonuts);
+    for (let i in donuts) {
+        let n = (parseInt(i) + firstDonut) % maximumDonuts;
         if (!donuts[n].exists) {
             donuts[n].respawn();
         }
-        if (donutsRemaining == enoughDonuts) {
+        if (donutsRemaining >= enoughDonuts) {
             break;
         }
     }
     // monsters
     monsters.forEach(monster => {
         monster.respawn();
+    })
+    // close up escape route
+    gameBoardMap.forEach((row, y) => {
+        row.forEach((char, x) => {
+            if (gameBoardMap[y][x].terrain === "O") {
+                gameBoardMap[y][x].terrain = "X";
+            }
+        })
     })
 }
 
