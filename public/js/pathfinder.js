@@ -43,7 +43,8 @@ var pathFinder = {
             closestNode = start; // set the start node to be the closest if required
 
         start.h = heuristic(start, end);
-
+        graph.markDirty(start);
+        
         openHeap.push(start);
 
         while(openHeap.size() > 0) {
@@ -148,12 +149,12 @@ class Graph {
         this.nodes = [];
         this.diagonal = !!options.diagonal;
         this.grid = [];
-        for (var x = 0; x < gridIn.length; x++) {
-            this.grid[x] = [];
+        for (var y = 0; y < gridIn.length; y++) {
+            this.grid[y] = [];
     
-            for (var y = 0, row = gridIn[x]; y < row.length; y++) {
-                var node = new GridNode(x, y, row[y]);
-                this.grid[x][y] = node;
+            for (var x = 0, row = gridIn[y]; x < row.length; x++) {
+                var node = new GridNode(x, y, row[x]);
+                this.grid[y][x] = node;
                 this.nodes.push(node);
             }
         }
@@ -185,45 +186,23 @@ class Graph {
             grid = this.grid;
     
         // West
-        if(grid[x-1] && grid[x-1][y]) {
-            ret.push(grid[x-1][y]);
+        if(grid[y] && grid[y][x-1]) {
+            ret.push(grid[y][x-1]);
         }
     
         // East
-        if(grid[x+1] && grid[x+1][y]) {
-            ret.push(grid[x+1][y]);
+        if(grid[y] && grid[y][x+1]) {
+            ret.push(grid[y][x+1]);
         }
     
         // South
-        if(grid[x] && grid[x][y-1]) {
-            ret.push(grid[x][y-1]);
+        if(grid[y+1] && grid[y+1][x]) {
+            ret.push(grid[y+1][x]);
         }
     
         // North
-        if(grid[x] && grid[x][y+1]) {
-            ret.push(grid[x][y+1]);
-        }
-    
-        if (this.diagonal) {
-            // Southwest
-            if(grid[x-1] && grid[x-1][y-1]) {
-                ret.push(grid[x-1][y-1]);
-            }
-    
-            // Southeast
-            if(grid[x+1] && grid[x+1][y-1]) {
-                ret.push(grid[x+1][y-1]);
-            }
-    
-            // Northwest
-            if(grid[x-1] && grid[x-1][y+1]) {
-                ret.push(grid[x-1][y+1]);
-            }
-    
-            // Northeast
-            if(grid[x+1] && grid[x+1][y+1]) {
-                ret.push(grid[x+1][y+1]);
-            }
+        if(grid[y-1] && grid[y-1][x]) {
+            ret.push(grid[y-1][x]);
         }
     
         return ret;
