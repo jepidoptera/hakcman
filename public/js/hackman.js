@@ -37,7 +37,7 @@ class Player {
     constructor() {
         this.x = 1;
         this.y = 1;
-        this.direction = null;
+        this.direction = noDirection;
         this.facetimeout = null;
         this.img = smileFace;
         this.dead = false;
@@ -74,7 +74,7 @@ class Player {
 let player;
 
 class Monster {
-    constructor(x, y, name = "normie") {
+    constructor(x, y, name = "angry") {
         this.x = x;
         this.y = y;
         this.lastFrame = Date.now();
@@ -82,9 +82,13 @@ class Monster {
             this.img = devilFace;
             this.speed = 10;
         }
-        else if (name === "weak") {
+        else if (name === "irk") {
             this.img = irkFace;
             this.speed = 4;
+        }
+        else if (name === "turd") {
+            this.img = turdFace;
+            this.speed = 2;
         }
         else {
             this.img = angryFace;
@@ -218,6 +222,7 @@ $(document).ready(() => {
     tongueFace = document.getElementById("tongueFace")
     angryFace = document.getElementById("angryFace")
     irkFace = document.getElementById("irkedFace")
+    turdFace = document.getElementById("poopFace")
     devilFace = document.getElementById("devilFace")
     deadFace = document.getElementById("deadFace")
 
@@ -244,11 +249,15 @@ function loadGame() {
         gameBoardMap[y] = Array(row.length)
         row.forEach((char, x) => {
             if (char === "m") {
-                monsters.push(new Monster(x, y, "weak"));
+                monsters.push(new Monster(x, y, "irk"));
                 char = ' ';
             }
             if (char === "M") {
-                monsters.push(new Monster(x, y));
+                monsters.push(new Monster(x, y, "angry"));
+                char = ' ';
+            }
+            if (char === "T") {
+                monsters.push(new Monster(x, y, "turd"));
                 char = ' ';
             }
             if (char === "D") {
