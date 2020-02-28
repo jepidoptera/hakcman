@@ -161,8 +161,10 @@ class Monster {
             this.img = turdFace;
             this.speed = 2;
             this.followDistance = 99;
+            this.pathFinder = true;
         }
         this.direction = noDirection;
+        this.path = [];
         this.moveInterval = setInterval(() => this.move(), 1000 / this.speed)
         this.start_position = {x: x, y: y};
     }
@@ -170,6 +172,8 @@ class Monster {
     respawn() {
         gameBoardMap[this.y][this.x].passable = true;
         gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].passable = true;
+        nodeMap.grid[this.y][this.x].weight = 1;
+        nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].weight = 1;
         this.x = this.start_position.x;
         this.y = this.start_position.y;
         this.direction = noDirection;
@@ -177,12 +181,9 @@ class Monster {
 
     move() {
         if (paused) return;
-        // monster movement rules:
 
-        // 1. don't reverse course unless there is no other option, or
-        // 2. when a new path (which isn't a course reversal) becomes available, 
-        // (randomly) consider taking it
         gameBoardMap[this.y][this.x].passable = true;
+        nodeMap.grid[this.y][this.x].weight = 1;
         this.x += this.direction.x;
         this.y += this.direction.y;
 
@@ -205,57 +206,79 @@ class Monster {
                 return sum + 2 ** i;
             }
         }, 0);
-        // they will change direction when options for moving change
-        // either hitting a wall, or coming across a new passage
-        if ((newMoveOptions | this.moveOptions) != this.moveOptions || 
-            !(newMoveOptions & 2 ** this.direction.index)) {
-            let newDirection = directions[0];
 
-            let xdif = player.x - this.x;
-            let ydif = player.y - this.y;
-            if (xdif + ydif < this.followDistance) {
-            // // try to move toward player first
-                 if (Math.floor(Math.random() * (Math.abs(xdif) + Math.abs(ydif))) < Math.abs(xdif)) {
-                    newDirection = xdif > 0 ? directions[0] : directions[2];
+        if (this.pathFinder) this.findPath();
+        if (this.path.length === 0) {
+        // non-pathfinding monster movement rules:
+
+        // 1. don't reverse course unless there is no other option, or
+        // 2. when a new path (which isn't a course reversal) becomes available, 
+        // (randomly) consider taking it
+            
+            // they will change direction when options for moving change
+            // either hitting a wall, or coming across a new passage
+            if ((newMoveOptions | this.moveOptions) != this.moveOptions || 
+                !(newMoveOptions & 2 ** this.direction.index)) {
+                let newDirection = directions[0];
+
+                let xdif = player.x - this.x;
+                let ydif = player.y - this.y;
+                if (xdif + ydif < this.followDistance) {
+                // // try to move toward player first
+                    if (Math.floor(Math.random() * (Math.abs(xdif) + Math.abs(ydif))) < Math.abs(xdif)) {
+                        newDirection = xdif > 0 ? directions[0] : directions[2];
+                    }
+                    else {
+                        newDirection = ydif > 0 ? directions[1] : directions[3];
+                    }
                 }
-                else {
-                    newDirection = ydif > 0 ? directions[1] : directions[3];
+                // but if that's not going to work out, due to a wall,
+                // or because it would be going backwards...
+                if (!gameBoardMap[this.y + newDirection.y][this.x + newDirection.x].passable 
+                    || Math.abs(newDirection.index - this.direction.index) === 2) {
+                        directions.forEach((direction, i) => {
+                            // go anywhere but backwards
+                            if (Math.abs(this.direction.index - i) != 2 &&
+                            gameBoardMap[this.y + direction.y]
+                            [this.x + direction.x].passable) {
+                                newDirection = direction;
+                            } 
+                        })
                 }
+                this.direction = newDirection;
             }
-            // but if that's not going to work out, due to a wall,
-            // or because it would be going backwards...
-            if (!gameBoardMap[this.y + newDirection.y][this.x + newDirection.x].passable 
-                || Math.abs(newDirection.index - this.direction.index) === 2) {
-                    directions.forEach((direction, i) => {
-                        // go anywhere but backwards
-                        if (Math.abs(this.direction.index - i) != 2 &&
-                        gameBoardMap[this.y + direction.y]
-                        [this.x + direction.x].passable) {
-                            newDirection = direction;
-                        } 
-                    })
-            }
-            this.direction = newDirection;
+
+            let tries = 0;
+            while (!gameBoardMap[this.y + this.direction.y]
+                [this.x + this.direction.x].passable && tries < 4) {
+                    // hit a wall - change direction
+                    // should only ever happen in the case of a dead end
+                    this.direction = directions[(this.direction.index + 1) % directions.length];
+                    tries ++;
+                }
+            
+            // in the event that they are totally stuck, don't move this round
+            if (tries == 4) this.direction = {x: 0, y: 0, index: -1};
+
         }
-
-        let tries = 0;
-        while (!gameBoardMap[this.y + this.direction.y]
-            [this.x + this.direction.x].passable && tries < 4) {
-                // hit a wall - change direction
-                // should only ever happen in the case of a dead end
-                this.direction = directions[(this.direction.index + 1) % directions.length];
-                tries ++;
-            }
-        
-        // in the event that they are totally stuck, don't move this round
-        if (tries == 4) this.direction = {x: 0, y: 0, index: -1};
-
+        else {
+            // following a defined path
+            let nextmove = this.path.shift();
+            if (nextmove.x > this.x) this.direction = directions[0];
+            if (nextmove.y > this.y) this.direction = directions[1];
+            if (nextmove.x < this.x) this.direction = directions[2];
+            if (nextmove.y < this.y) this.direction = directions[3];
+        }
         this.moveOptions = newMoveOptions | 2 ** this.direction.index;
 
         // block off the square we are moving to at this point, so other monsters don't overlap
         gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].passable = false;
+        nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].weight = 0;
 
         this.lastFrame = Date.now();
+    }
+    findPath() {
+        this.path = pathFinder.search(nodeMap, nodeMap.grid[this.y][this.x], nodeMap.grid[player.y][player.x])
     }
 }
 let monsters = [];
@@ -359,7 +382,7 @@ function resetMap() {
     // put back ten percent of donuts
     const enoughDonuts = Math.min(donutsRemaining + maximumDonuts / 10, maximumDonuts);
     const firstDonut = Math.floor(Math.random() * maximumDonuts);
-    for (let i in donuts) {
+    for (i in donuts) {
         let n = (parseInt(i) + firstDonut) % maximumDonuts;
         if (!donuts[n].exists) {
             donuts[n].respawn();
