@@ -464,6 +464,10 @@ function unPause() {
 
 function movePlayer() {
     if (paused) return;
+
+    if (nodeMap.nodes.filter(node => gameBoardMap[node.y][node.x].terrain==="*" && gameBoardMap[node.y][node.x].passable).length > 0) {
+        let er = 1;
+    }
     player.lastFrame = Date.now();
 
     player.x += player.direction.x;
@@ -514,7 +518,9 @@ function movePlayer() {
         else if ((key === "ArrowRight"  || moveRight) && player.x < gameBoardWidth - 1) {
             newDirection = directions[0];
         }
-        if (newDirection && gameBoardMap[player.y + newDirection.y][player.x + newDirection.x].passable) {
+        if (newDirection && (
+            gameBoardMap[player.y + newDirection.y][player.x + newDirection.x].passable
+            || gameBoardMap[player.y + newDirection.y][player.x + newDirection.x].terrain === "O")) {
             if (player.direction === noDirection) {
                 player.direction = newDirection;
             }
@@ -548,9 +554,12 @@ function movePlayer() {
                 row.forEach((location, x) => {
                     if (location.terrain === "X" || location.terrain === "x") {
                         // capital Xs become escape route
-                        if (location.terrain === "X") gameBoardMap[y][x].terrain = "O";
-                        else gameBoardMap[y][x].terrain = " ";
-                        gameBoardMap[y][x].passable = true;
+                        if (location.terrain === "X") 
+                            gameBoardMap[y][x].terrain = "O";
+                        else {
+                            gameBoardMap[y][x].terrain = " ";
+                            gameBoardMap[y][x].passable = true;
+                        }
                         let explosionImg = $("<img>")
                             .attr("src", "/images/boom.gif")
                             .css({
