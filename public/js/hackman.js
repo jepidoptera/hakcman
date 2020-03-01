@@ -74,13 +74,24 @@ class PowerUp {
         if (this.exists) {
             this.exists = false;
             gameBoardMap[this.y][this.x].terrain = " ";
-            if (this.type === "donut") donutsRemaining --;
+            if (this.type === "donut") {
+                donutsRemaining --;
+                console.log('ate a donut');
+            }
+            player.img = tongueFace;
+            clearInterval(player.facetimeout);
+            player.facetimeout = setTimeout(() => {
+                // reset player emoji
+                if (player.img !== deadFace) player.img = smileFace;
+            }, 100)
         }
     }
     respawn() {
-        gameBoardMap[this.y][this.x].terrain = this.char;
-        if (this.type === "donut") donutsRemaining ++;
-        this.exists = true;
+        if (!this.exists) {
+            gameBoardMap[this.y][this.x].terrain = this.char;
+            if (this.type === "donut") donutsRemaining ++;
+            this.exists = true;
+        }
     }
 }
 let donuts = [];
@@ -178,6 +189,7 @@ class Monster {
         this.x = this.start_position.x;
         this.y = this.start_position.y;
         this.direction = noDirection;
+        this.path=[];
     }
 
     move() {
@@ -188,6 +200,10 @@ class Monster {
         this.x += this.direction.x;
         this.y += this.direction.y;
 
+        if (gameBoardMap[this.y][this.x].terrain === "*") {
+            let er = 1;
+        }
+    
         // did we get 'em??
         if (this.x === player.x && this.y === player.y) {
             this.x -= this.direction.x;
@@ -259,11 +275,13 @@ class Monster {
                 }
             
             // in the event that they are totally stuck, don't move this round
+            // this is probably because they are hemmed in by other monsters
             if (tries == 4) this.direction = {x: 0, y: 0, index: -1};
 
         }
         else {
-            // following a defined path
+            // pathfinding: track directly toward the player on the
+            // shortest possible computed path
             let nextmove = this.path.shift();
             if (nextmove.x > this.x) this.direction = directions[0];
             if (nextmove.y > this.y) this.direction = directions[1];
@@ -450,7 +468,6 @@ function drawGameBoard() {
     
     // console.log('frame rendered');
     requestAnimationFrame(drawGameBoard);
-
 }
 
 function pause() { 
@@ -465,9 +482,6 @@ function unPause() {
 function movePlayer() {
     if (paused) return;
 
-    if (nodeMap.nodes.filter(node => gameBoardMap[node.y][node.x].terrain==="*" && gameBoardMap[node.y][node.x].passable).length > 0) {
-        let er = 1;
-    }
     player.lastFrame = Date.now();
 
     player.x += player.direction.x;
@@ -528,25 +542,14 @@ function movePlayer() {
             if (newDirection != currentDirection) {
                 player.direction = newDirection;
                 break;
-            } 
+            }
         }
     }
-    // if (!gameBoardMap[player.y + player.direction.y][player.x + player.direction.x].passable) {
-    //     player.direction = noDirection;
-    // }
-
 
     if (gameBoardMap[player.y][player.x].powerUp) {
 
         gameBoardMap[player.y][player.x].powerUp.eat();
 
-        player.img = tongueFace;
-        clearInterval(player.facetimeout);
-        player.facetimeout = setTimeout(() => {
-            // reset player emoji
-            if (player.img !== deadFace) player.img = smileFace;
-        }, 100)
-        console.log('ate a donut');
         // was that the last of them??
         if (donutsRemaining === 0) {
             // X's on map explode
