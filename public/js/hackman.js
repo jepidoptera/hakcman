@@ -287,6 +287,11 @@ class Monster {
             if (nextmove.y > this.y) this.direction = directions[1];
             if (nextmove.x < this.x) this.direction = directions[2];
             if (nextmove.y < this.y) this.direction = directions[3];
+            if (!gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].passable) {
+                this.path = [];
+                this.direction = noDirection;
+                console.log("pathfinding error!");
+            }
         }
         this.moveOptions = newMoveOptions | 2 ** this.direction.index;
 
