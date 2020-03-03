@@ -110,9 +110,10 @@ class PowerUp {
                 player.img = starEyes;
                 // reset monsters so they can run away
                 monsters.forEach(monster => {
-                    monster.direction = noDirection;
+                    monster.moveOptions = 0;
                 })
-                setTimeout(() => {
+                if (player.resetTimeout) clearTimeout(player.resetTimeout);
+                player.resetTimeout = setTimeout(() => {
                     player.invincible = false;
                     player.resetFace();
                 }, 10000);
