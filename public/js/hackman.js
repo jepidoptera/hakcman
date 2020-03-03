@@ -50,7 +50,17 @@ class mapLocation {
             player.locate(x, y);
         }
         this.terrain = char;
-        this.passable = (char === "*" || char === "X" || char === "x") ? false : true;
+        if (char === "*" || char === "X" || char === "x") this.obstruction = "wall";
+    }
+    get passable() {
+        return !this.obstruction;
+    }
+    get passableByPlayer() {
+        // player should be free to run right into monsters
+        // what fun is it otherwise?
+        return this.obstruction
+        ? this.obstruction.type === "monster" || this.obstruction.type === "escape"
+        : true;
     }
 }
 var gameBoardMap;
@@ -124,7 +134,7 @@ class Player {
     }
 
     respawn() {
-        gameBoardMap[this.y][this.x].passable = true;
+        gameBoardMap[this.y][this.x].obstruction = null;
         this.x = this.start_x;
         this.y = this.start_y;
         resetMap();
@@ -179,11 +189,13 @@ class Monster {
         this.path = [];
         this.moveInterval = setInterval(() => this.move(), 1000 / this.speed)
         this.start_position = {x: x, y: y};
+        this.type = "monster";
+        this.species = name;
     }
 
     respawn() {
-        gameBoardMap[this.y][this.x].passable = true;
-        gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].passable = true;
+        gameBoardMap[this.y][this.x].obstruction = false;
+        gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = false;
         nodeMap.grid[this.y][this.x].weight = 1;
         nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].weight = 1;
         this.x = this.start_position.x;
@@ -194,9 +206,8 @@ class Monster {
 
     move() {
         if (paused) return;
-
-        gameBoardMap[this.y][this.x].passable = true;
-        nodeMap.grid[this.y][this.x].weight = 1;
+        
+        // first thing's first
         this.x += this.direction.x;
         this.y += this.direction.y;
 
@@ -204,14 +215,14 @@ class Monster {
             let er = 1;
         }
     
-        // did we get 'em??
-        if (this.x === player.x && this.y === player.y) {
-            this.x -= this.direction.x;
-            this.y -= this.direction.y;
-            player.die();
-            this.lastFrame = Date.now();
-            return;
-        }
+        // // did we get 'em??
+        // if (this.x === player.x && this.y === player.y) {
+        //     this.x -= this.direction.x;
+        //     this.y -= this.direction.y;
+        //     player.die();
+        //     this.lastFrame = Date.now();
+        //     return;
+        // }
 
         // check which options are available to move towards
         let newMoveOptions = directions.reduce((sum, direction, i) => {
@@ -295,8 +306,12 @@ class Monster {
         }
         this.moveOptions = newMoveOptions | 2 ** this.direction.index;
 
-        // block off the square we are moving to at this point, so other monsters don't overlap
-        gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].passable = false;
+        // clear the current location
+        gameBoardMap[this.y][this.x].obstruction = null;
+        nodeMap.grid[this.y][this.x].weight = 1;
+
+        // block off the square we are moving into
+        gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = this;
         nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].weight = 0;
 
         this.lastFrame = Date.now();
@@ -424,6 +439,7 @@ function resetMap() {
         row.forEach((char, x) => {
             if (gameBoardMap[y][x].terrain === "O") {
                 gameBoardMap[y][x].terrain = "X";
+                gameBoardMap[y][x].obstruction = "wall";
             }
         })
     })
@@ -462,7 +478,7 @@ function drawGameBoard() {
         })
     
     // draw player
-    player.offset = {
+    if (!player.dead) player.offset = {
         x: player.direction.x * Math.min((Date.now() - player.lastFrame) / 1000 * player.speed, 1),
         y: player.direction.y * Math.min((Date.now() - player.lastFrame) / 1000 * player.speed, 1)
     }
@@ -471,6 +487,14 @@ function drawGameBoard() {
         gameCellWidth, gameCellHeight)
     
     
+    // check monster collisionss
+    monsters.forEach(monster => {
+        if (Math.abs(player.x + player.offset.x - monster.x - monster.offset.x) < 1 
+        && Math.abs(player.y + player.offset.y - monster.y - monster.offset.y) < 1) {
+            player.die();
+        }
+    })
+
     // console.log('frame rendered');
     requestAnimationFrame(drawGameBoard);
 }
@@ -491,6 +515,8 @@ function movePlayer() {
 
     player.x += player.direction.x;
     player.y += player.direction.y;
+    // a trail that monsters can smell?
+    gameBoardMap[player.y][player.x].obstruction = NaN;
 
     let xdif = Math.round(mousePos.x * gameBoardWidth) - player.x;
     let ydif = Math.round(mousePos.y * gameBoardHeight) - player.y;
@@ -537,9 +563,7 @@ function movePlayer() {
         else if ((key === "ArrowRight"  || moveRight) && player.x < gameBoardWidth - 1) {
             newDirection = directions[0];
         }
-        if (newDirection && (
-            gameBoardMap[player.y + newDirection.y][player.x + newDirection.x].passable
-            || gameBoardMap[player.y + newDirection.y][player.x + newDirection.x].terrain === "O")) {
+        if (newDirection && gameBoardMap[player.y + newDirection.y][player.x + newDirection.x].passableByPlayer) {
             if (player.direction === noDirection) {
                 player.direction = newDirection;
             }
@@ -562,11 +586,13 @@ function movePlayer() {
                 row.forEach((location, x) => {
                     if (location.terrain === "X" || location.terrain === "x") {
                         // capital Xs become escape route
-                        if (location.terrain === "X") 
+                        if (location.terrain === "X") {
                             gameBoardMap[y][x].terrain = "O";
+                            gameBoardMap[y][x].obstruction = {type: "escape"};
+                        }
                         else {
                             gameBoardMap[y][x].terrain = " ";
-                            gameBoardMap[y][x].passable = true;
+                            gameBoardMap[y][x].obstruction = "";
                         }
                         let explosionImg = $("<img>")
                             .attr("src", "/images/boom.gif")
@@ -591,6 +617,7 @@ function movePlayer() {
     if (gameBoardMap[player.y][player.x].terrain === "O") {
         // next level
         console.log("next level!");
+        pause();
         $("#gameCanvas").addClass("swipeUp");
         swipeInterval = setInterval(() => {
             swipeAnimation ++;
@@ -600,11 +627,5 @@ function movePlayer() {
             window.location.href="/game/" + (parseInt($("#levelNumber").text()) + 1);
         }, 1000);
     }
-    // check monsters
-    monsters.forEach(monster => {
-        if (monster.x === player.x && monster.y === player.y) {
-            player.die();
-        }
-    })
 }
 
