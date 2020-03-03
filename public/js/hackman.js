@@ -551,9 +551,15 @@ function drawGameBoard() {
             gameCellWidth * (monster.x + monster.offset.x), 
             gameCellHeight * (monster.y + monster.offset.y - swipeAnimation),
             gameCellWidth, gameCellHeight)
+            ctx.globalAlpha = 1;
+        if (monster.dead) {
+            ctx.drawImage (graveImg, 
+                gameCellWidth * monster.start_position.x, 
+                gameCellHeight * monster.start_position.y,
+                gameCellWidth, gameCellHeight)
+            }
         })
     
-    ctx.globalAlpha = 1;
     // draw player
     if (!player.dead) player.offset = {
         x: player.direction.x * Math.min((Date.now() - player.lastFrame) / 1000 * player.speed, 1),
