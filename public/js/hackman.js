@@ -193,6 +193,30 @@ class Monster {
         this.species = name;
     }
 
+    die() {
+        this.dead = true;
+        gameBoardMap[this.y][this.x].obstruction = null;
+        nodeMap.grid[this.y][this.x].weight = 1;
+        this.x += this.offset.x;
+        this.y += this.offset.y;
+        this.direction = {
+            x: (this.start_position.x - this.x) / (this.speed * 10),
+            y: (this.start_position.y - this.y) / (this.speed * 10)
+        }
+        setTimeout(() => {
+            this.direction = noDirection;
+            this.dead = false;
+            this.x = this.start_position.x;
+            this.y = this.start_position.y;
+        }, 10000);
+    }
+
+    float() {
+        this.x += this.direction.x;
+        this.y += this.direction.y;
+        this.lastFrame = Date.now();
+    }
+
     respawn() {
         gameBoardMap[this.y][this.x].obstruction = false;
         gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = false;
@@ -206,7 +230,7 @@ class Monster {
 
     move() {
         if (paused) return;
-        
+        if (this.dead) {this.float(); return;}
         // first thing's first
         this.x += this.direction.x;
         this.y += this.direction.y;
@@ -471,12 +495,15 @@ function drawGameBoard() {
             x: monster.direction.x * Math.min((Date.now() - monster.lastFrame) / 1000 * monster.speed, 1),
             y: monster.direction.y * Math.min((Date.now() - monster.lastFrame) / 1000 * monster.speed, 1),
         }
+        if (monster.dead) ctx.globalAlpha = 0.5;
+        else ctx.globalAlpha = 1;
         ctx.drawImage (monster.img, 
             gameCellWidth * (monster.x + monster.offset.x), 
             gameCellHeight * (monster.y + monster.offset.y - swipeAnimation),
             gameCellWidth, gameCellHeight)
         })
     
+    ctx.globalAlpha = 1;
     // draw player
     if (!player.dead) player.offset = {
         x: player.direction.x * Math.min((Date.now() - player.lastFrame) / 1000 * player.speed, 1),
@@ -489,9 +516,11 @@ function drawGameBoard() {
     
     // check monster collisionss
     monsters.forEach(monster => {
-        if (Math.abs(player.x + player.offset.x - monster.x - monster.offset.x) < 1 
-        && Math.abs(player.y + player.offset.y - monster.y - monster.offset.y) < 1) {
-            player.die();
+        if (!monster.dead) {
+            if (Math.abs(player.x + player.offset.x - monster.x - monster.offset.x) < 1 
+            && Math.abs(player.y + player.offset.y - monster.y - monster.offset.y) < 1) {
+                monster.die();
+            }
         }
     })
 
