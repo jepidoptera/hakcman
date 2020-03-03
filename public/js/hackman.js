@@ -13,6 +13,7 @@ var angryFace;
 var irkFace;
 var devilFace;
 var deadFace;
+var ghost;
 
 const directions = [
     {x:1, y:0, index:0}, 
@@ -24,33 +25,39 @@ const noDirection = {x: 0, y: 0, index: -1};
 
 class mapLocation {
     constructor(char, x, y) {
-        if (char === "m") {
+        if (char === "*" || char === "X" || char === "x") 
+            this.obstruction = "wall";
+
+        else if (char === "m") {
             monsters.push(new Monster(x, y, "irk"));
             char = ' ';
         }
-        if (char === "M") {
+        else if (char === "M") {
             monsters.push(new Monster(x, y, "angry"));
             char = ' ';
         }
-        if (char === "T") {
+        else if (char === "T") {
             monsters.push(new Monster(x, y, "turd"));
             char = ' ';
         }
-        if (char === "D") {
+        else if (char === "D") {
             monsters.push(new Monster(x, y, "devil"));
             char = ' ';
         }
-        if (char === "+") {
-            donutsRemaining ++;
+        else if (char === "+") {
             let newDonut = new PowerUp(x, y, "donut");
             donuts.push (newDonut);
             this.powerUp = newDonut;
         }
-        if (char === "H") {
+        else if (char === "|") {
+            let newCarrot = new PowerUp(x, y, "carrot");
+            powerUps.push (newCarrot);
+            this.powerUp = newCarrot;
+        }
+        else if (char === "H") {
             player.locate(x, y);
         }
         this.terrain = char;
-        if (char === "*" || char === "X" || char === "x") this.obstruction = "wall";
     }
     get passable() {
         return !this.obstruction;
@@ -77,6 +84,11 @@ class PowerUp {
         this.type = type;
         if (type === "donut") {
             this.char = "+";
+            donutsRemaining ++;
+        }
+        else if (type === "carrot") {
+            this.char = "|";
+            this.img = carrotImg;
         }
         this.exists = true;
     }
@@ -87,13 +99,20 @@ class PowerUp {
             if (this.type === "donut") {
                 donutsRemaining --;
                 console.log('ate a donut');
+                player.img = tongueFace;
+                clearInterval(player.facetimeout);
+                player.facetimeout = setTimeout(() => {
+                    player.resetFace()
+                }, 100)
             }
-            player.img = tongueFace;
-            clearInterval(player.facetimeout);
-            player.facetimeout = setTimeout(() => {
-                // reset player emoji
-                if (player.img !== deadFace) player.img = smileFace;
-            }, 100)
+            else if (this.type === "carrot") {
+                player.invincible = true;
+                player.img = starEyes;
+                setTimeout(() => {
+                    player.invincible = false;
+                    player.resetFace();
+                }, 10000);
+            }
         }
     }
     respawn() {
@@ -105,7 +124,7 @@ class PowerUp {
     }
 }
 let donuts = [];
-
+let powerUps = [];
 
 class Player {
     constructor() {
@@ -141,6 +160,14 @@ class Player {
         this.dead = false;
         this.img = smileFace;
         this.moveInterval = setInterval(movePlayer, 1000 / this.speed);
+    }
+
+    resetFace() {
+        if (this.invincible)
+            this.img = starEyes;
+        else if (this.dead) 
+            this.img = deadFace;
+        else this.img = smileFace;
     }
 
     die() {
@@ -191,23 +218,26 @@ class Monster {
         this.start_position = {x: x, y: y};
         this.type = "monster";
         this.species = name;
+        this.mainImg = this.img;
     }
 
     die() {
         this.dead = true;
-        gameBoardMap[this.y][this.x].obstruction = null;
-        nodeMap.grid[this.y][this.x].weight = 1;
+        gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = null;
+        nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].weight = 1;
         this.x += this.offset.x;
         this.y += this.offset.y;
         this.direction = {
             x: (this.start_position.x - this.x) / (this.speed * 10),
             y: (this.start_position.y - this.y) / (this.speed * 10)
         }
-        setTimeout(() => {
+        this.img = ghost;
+        this.respawnTimeout = setTimeout(() => {
             this.direction = noDirection;
             this.dead = false;
             this.x = this.start_position.x;
             this.y = this.start_position.y;
+            this.img = this.mainImg;
         }, 10000);
     }
 
@@ -218,10 +248,17 @@ class Monster {
     }
 
     respawn() {
-        gameBoardMap[this.y][this.x].obstruction = false;
-        gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = false;
-        nodeMap.grid[this.y][this.x].weight = 1;
-        nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].weight = 1;
+        if (!this.dead) {
+            gameBoardMap[this.y][this.x].obstruction = false;
+            gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = false;
+            nodeMap.grid[this.y][this.x].weight = 1;
+            nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].weight = 1;
+        }
+        else {
+            clearTimeout(this.respawnTimeout);
+            this.dead = false;
+            this.img = this.mainImg;
+        }
         this.x = this.start_position.x;
         this.y = this.start_position.y;
         this.direction = noDirection;
@@ -394,6 +431,8 @@ $(document).ready(() => {
     turdFace = document.getElementById("poopFace")
     devilFace = document.getElementById("devilFace")
     deadFace = document.getElementById("deadFace")
+    starEyes = document.getElementById("starEyes")
+    ghost = document.getElementById("ghost")
 
     loadGame();
 
@@ -458,7 +497,11 @@ function resetMap() {
     monsters.forEach(monster => {
         monster.respawn();
     })
-    // close up escape route
+    // powerups
+    powerUps.forEach(powerup => {
+        powerup.respawn();
+    })
+    // close down escape route
     gameBoardMap.forEach((row, y) => {
         row.forEach((char, x) => {
             if (gameBoardMap[y][x].terrain === "O") {
@@ -488,6 +531,13 @@ function drawGameBoard() {
             }
         }
     }
+    powerUps.forEach(powerup => {
+        if (powerup.exists) {
+            ctx.drawImage(powerup.img, 
+                gameCellWidth * powerup.x, gameCellHeight * (powerup.y - swipeAnimation),
+                gameCellWidth, gameCellHeight)
+        }
+    })
 
     // draw monsters
     monsters.forEach(monster => {
@@ -519,7 +569,10 @@ function drawGameBoard() {
         if (!monster.dead) {
             if (Math.abs(player.x + player.offset.x - monster.x - monster.offset.x) < 1 
             && Math.abs(player.y + player.offset.y - monster.y - monster.offset.y) < 1) {
-                monster.die();
+                if (player.invincible)
+                    monster.die();
+                else
+                    player.die();
             }
         }
     })
