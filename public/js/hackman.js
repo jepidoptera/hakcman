@@ -108,6 +108,10 @@ class PowerUp {
             else if (this.type === "carrot") {
                 player.invincible = true;
                 player.img = starEyes;
+                // reset monsters so they can run away
+                monsters.forEach(monster => {
+                    monster.direction = noDirection;
+                })
                 setTimeout(() => {
                     player.invincible = false;
                     player.resetFace();
@@ -284,8 +288,8 @@ class Monster {
         //     this.lastFrame = Date.now();
         //     return;
         // }
-
         // check which options are available to move towards
+        var newDirection;
         let newMoveOptions = directions.reduce((sum, direction, i) => {
             if (!gameBoardMap[this.y + direction.y][this.x + direction.x].passable ||
                 Math.abs(direction.index - this.direction.index) === 2) {
@@ -308,10 +312,15 @@ class Monster {
             // either hitting a wall, or coming across a new passage
             if ((newMoveOptions | this.moveOptions) != this.moveOptions || 
                 !(newMoveOptions & 2 ** this.direction.index)) {
-                let newDirection = directions[0];
+                newDirection = directions[0];
 
                 let xdif = player.x - this.x;
                 let ydif = player.y - this.y;
+                if (player.invincible) {
+                    // when the player is invincible, we want to run away instead
+                    xdif = -xdif;
+                    ydif = -ydif;
+                }
                 if (xdif + ydif < this.followDistance) {
                 // // try to move toward player first
                     if (Math.floor(Math.random() * (Math.abs(xdif) + Math.abs(ydif))) < Math.abs(xdif)) {
@@ -336,20 +345,6 @@ class Monster {
                 }
                 this.direction = newDirection;
             }
-
-            let tries = 0;
-            while (!gameBoardMap[this.y + this.direction.y]
-                [this.x + this.direction.x].passable && tries < 4) {
-                    // hit a wall - change direction
-                    // should only ever happen in the case of a dead end
-                    this.direction = directions[(this.direction.index + 1) % directions.length];
-                    tries ++;
-                }
-            
-            // in the event that they are totally stuck, don't move this round
-            // this is probably because they are hemmed in by other monsters
-            if (tries == 4) this.direction = {x: 0, y: 0, index: -1};
-
         }
         else {
             // pathfinding: track directly toward the player on the
@@ -359,12 +354,23 @@ class Monster {
             if (nextmove.y > this.y) this.direction = directions[1];
             if (nextmove.x < this.x) this.direction = directions[2];
             if (nextmove.y < this.y) this.direction = directions[3];
-            if (!gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].passable) {
-                this.path = [];
-                this.direction = noDirection;
-                console.log("pathfinding error!");
-            }
+            if (player.invincible) this.direction = directions[(this.direction.index + 2) % 4]
         }
+
+        // make sure this is gonna work
+        let tries = 0;
+        while (!gameBoardMap[this.y + this.direction.y]
+            [this.x + this.direction.x].passable && tries < 4) {
+                // hit a wall - change direction
+                // should only ever happen in the case of a dead end
+                this.direction = directions[(this.direction.index + 1) % directions.length];
+                tries ++;
+            }
+        
+        // in the event that they are totally stuck, don't move this round
+        // this is probably because they are hemmed in by other monsters
+        if (tries == 4) this.direction = {x: 0, y: 0, index: -1};
+
         this.moveOptions = newMoveOptions | 2 ** this.direction.index;
 
         // clear the current location
