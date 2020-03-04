@@ -312,7 +312,7 @@ class Monster {
             // they will change direction when options for moving change
             // either hitting a wall, or coming across a new passage
             if ((newMoveOptions | this.moveOptions) != this.moveOptions || 
-                !(newMoveOptions & 2 ** this.direction.index)) {
+                !(newMoveOptions & 2 ** this.direction.index) || player.invincible) {
                 newDirection = directions[0];
 
                 let xdif = player.x - this.x;
@@ -334,7 +334,7 @@ class Monster {
                 // but if that's not going to work out, due to a wall,
                 // or because it would be going backwards...
                 if (!gameBoardMap[this.y + newDirection.y][this.x + newDirection.x].passable 
-                    || Math.abs(newDirection.index - this.direction.index) === 2) {
+                    || Math.abs(newDirection.index - this.direction.index) === 2 && !player.invincible) {
                         directions.forEach((direction, i) => {
                             // go anywhere but backwards
                             if (Math.abs(this.direction.index - i) != 2 &&
