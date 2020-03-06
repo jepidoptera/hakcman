@@ -44,7 +44,7 @@ class mapLocation {
             monsters.push(new Monster(x, y, "devil"));
             char = ' ';
         }
-        else if (char === "d") {
+        else if (char === "D") {
             monsters.push(new Monster(x, y, "Devil"));
             char = ' ';
         }
