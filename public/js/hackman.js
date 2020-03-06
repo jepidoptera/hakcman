@@ -694,7 +694,10 @@ function movePlayer() {
                         // capital Xs become escape route
                         if (location.terrain === "X") {
                             gameBoardMap[y][x].terrain = "O";
-                            gameBoardMap[y][x].obstruction = {type: "escape"};
+                            if (x <= 0 || y <= 0 || x >= gameBoardWidth - 1 || y >= gameBoardHeight - 1)
+                                gameBoardMap[y][x].obstruction = {type: "escape"};
+                            else
+                                gameBoardMap[y][x].obstruction = "";
                         }
                         else {
                             gameBoardMap[y][x].terrain = " ";
