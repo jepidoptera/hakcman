@@ -40,8 +40,12 @@ class mapLocation {
             monsters.push(new Monster(x, y, "turd"));
             char = ' ';
         }
-        else if (char === "D") {
+        else if (char === "d") {
             monsters.push(new Monster(x, y, "devil"));
+            char = ' ';
+        }
+        else if (char === "d") {
+            monsters.push(new Monster(x, y, "Devil"));
             char = ' ';
         }
         else if (char === "+") {
@@ -200,6 +204,13 @@ class Monster {
             this.speed = 10;
             this.followDistance = 99;
             this.pathFinder = 0.01;
+        }
+        else if (name === "Devil") {
+            this.img = devilFace;
+            this.speed = 10;
+            this.followDistance = 99;
+            // the real deal.  he's always on your tail.
+            this.pathFinder = 1;
         }
         else if (name === "angry") {
             this.img = angryFace;
