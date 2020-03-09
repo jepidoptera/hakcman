@@ -729,7 +729,7 @@ function movePlayer() {
             })
         }
     }
-    if (gameBoardMap[player.y][player.x].terrain === "O") {
+    if (gameBoardMap[player.y][player.x].obstruction === "escape") {
         // next level
         console.log("next level!");
         pause();
