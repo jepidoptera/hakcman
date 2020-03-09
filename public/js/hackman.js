@@ -531,6 +531,10 @@ function resetMap() {
                 gameBoardMap[y][x].terrain = "X";
                 gameBoardMap[y][x].obstruction = "wall";
             }
+            else if (gameBoardMap[y][x].terrain === "o") {
+                gameBoardMap[y][x].terrain = "x";
+                gameBoardMap[y][x].obstruction = "wall";
+            }
         })
     })
 }
@@ -700,13 +704,11 @@ function movePlayer() {
                         // capital Xs become escape route
                         if (location.terrain === "X") {
                             gameBoardMap[y][x].terrain = "O";
-                            if (x <= 0 || y <= 0 || x >= gameBoardWidth - 1 || y >= gameBoardHeight - 1)
-                                gameBoardMap[y][x].obstruction = {type: "escape"};
-                            else
-                                gameBoardMap[y][x].obstruction = "";
+                            // block monsters from going out this way
+                            gameBoardMap[y][x].obstruction = {type: "escape"};
                         }
                         else {
-                            gameBoardMap[y][x].terrain = " ";
+                            gameBoardMap[y][x].terrain = "o";
                             gameBoardMap[y][x].obstruction = "";
                         }
                         let explosionImg = $("<img>")
@@ -729,7 +731,7 @@ function movePlayer() {
             })
         }
     }
-    if (gameBoardMap[player.y][player.x].obstruction === "escape") {
+    if (gameBoardMap[player.y][player.x].terrain === "O") {
         // next level
         console.log("next level!");
         pause();
