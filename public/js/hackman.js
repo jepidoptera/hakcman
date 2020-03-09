@@ -25,6 +25,8 @@ const noDirection = {x: 0, y: 0, index: -1};
 
 class mapLocation {
     constructor(char, x, y) {
+        this.x = x;
+        this.y = y;
         if (char === "*" || char === "X" || char === "x") 
             this.obstruction = "wall";
 
@@ -63,6 +65,9 @@ class mapLocation {
         }
         this.terrain = char;
     }
+    // set obstruction(obstruction) {
+    //     if (nodeMap) nodeMap.grid[this.y][this.x].weight = obstruction ? 1 : 0;
+    // }
     get passable() {
         return !this.obstruction;
     }
@@ -571,9 +576,10 @@ function drawGameBoard() {
             gameCellWidth, gameCellHeight)
             ctx.globalAlpha = 1;
         if (monster.dead) {
+            // grave stone
             ctx.drawImage (graveImg, 
                 gameCellWidth * monster.start_position.x, 
-                gameCellHeight * monster.start_position.y,
+                gameCellHeight * (monster.start_position.y - swipeAnimation),
                 gameCellWidth, gameCellHeight)
             }
         })
