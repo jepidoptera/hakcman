@@ -65,9 +65,6 @@ class mapLocation {
         }
         this.terrain = char;
     }
-    // set obstruction(obstruction) {
-    //     if (nodeMap) nodeMap.grid[this.y][this.x].weight = obstruction ? 1 : 0;
-    // }
     get passable() {
         return !this.obstruction;
     }
@@ -172,8 +169,6 @@ class Player {
         resetMap();
         this.dead = false;
         this.img = smileFace;
-        this.moveInterval = setInterval(() => this.move(), 1000 / this.speed);
-        this.powerupInterval = setInterval(() => this.digest(), 100);
     }
 
     resetFace() {
@@ -190,8 +185,6 @@ class Player {
         this.direction = noDirection;
         this.controls.latestKeys = [];
         this.controls.letOffKeys = [];
-        clearInterval(this.moveInterval);
-        clearInterval(this.powerupInterval);
         this.img = deadFace;
         setTimeout(() => {
            this.respawn();
@@ -200,6 +193,7 @@ class Player {
 
     digest() {
         if (paused) return;
+        if (this.dead) return;
         this.invincible = Math.max(this.invincible -1 , 0);
         if (0 < this.invincible && this.invincible < 15) {
             this.img = smileFace;
@@ -214,6 +208,7 @@ class Player {
 
     move() {
         if (paused) return;
+        if (this.dead) return;
 
         this.lastFrame = Date.now();
     
@@ -240,15 +235,6 @@ class Player {
                 moveDown = true;
             }
         }
-    
-        // process keys which have been released
-        this.controls.letOffKeys.forEach(offKey => {
-            if (this.controls.latestKeys.includes(offKey)) {
-                this.controls.latestKeys.splice(this.controls.latestKeys.indexOf(offKey), 1);
-            }
-        })
-        this.controls.letOffKeys = [];
-    
         
         let currentDirection = this.direction;
         let newDirection = undefined;
@@ -548,6 +534,8 @@ $(document).ready(() => {
 
     // player input
     $(document).on("keydown", function(e) {
+        let coldStart = false;
+        if (player.controls.latestKeys.length === 0) coldStart = true;
         if (!player.controls.latestKeys.includes(e.key)) {
             player.controls.latestKeys.push(e.key);
         }
@@ -555,10 +543,22 @@ $(document).ready(() => {
             if (paused) unPause();
             else pause();
         }
+        if (coldStart) {
+            // start moving immediately, instead of waiting for the next time player.move fires
+            clearInterval(player.moveInterval);
+            player.moveInterval = setInterval(() => {
+                player.move()
+            }, 1000 / player.speed);
+            player.move();
+        }
     })
     $(document).on("keyup", function(e) {
-        player.controls.letOffKeys.push(e.key);
+        let keyAt = player.controls.latestKeys.indexOf(e.key);
+        if (keyAt >= 0) {
+            player.controls.latestKeys.splice(keyAt, 1);
+        }
     })
+
     $(document).on("mousedown", function(e) {
         player.controls.mouseButton = true;
     })
@@ -761,7 +761,3 @@ function unPause() {
     paused = false;
     $("#startButton").hide();
 }
-
-function movePlayer() {
-}
-
