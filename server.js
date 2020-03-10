@@ -6,13 +6,14 @@ require('dotenv').config();
 const port = process.env.PORT || 8080;
 const apiKey = process.env.APIKEY || "no_api_key";
 
-const level = [
+const levels = [
     "easymobile",
     "inception",
     "the original",
     "inexorable",
+    "level 5",
     "the crucible",
-    "section 4",
+    "4 square",
     "the devil's lair",
     "labyrinth"
 ]
@@ -44,19 +45,28 @@ app.get ("/", (req, res) => {
 })
 
 app.get('/game/:levelID', (req, res) => {
-    console.log(level[req.params.levelID])
-    const filename = `public/levels/${level[req.params.levelID-1]}.lvl`;
+    console.log(levels[req.params.levelID])
+    let level = req.params.levelID;
+    // fail gracefully:
+    // if level does not exist, try the next in the list
+    if (level == parseInt(level)) -- level;
+    let filename = `public/levels/${levels[level]}.lvl`;
+    while (!fs.existsSync(filename) && parseInt(level) < 99) {
+        console.log("file not found:", filename);
+        level = parseInt(level) + 1;
+        filename = `public/levels/${levels[level]}.lvl`;
+    }
     console.log(filename);
-    if (fs.existsSync(filename)) {
+    if (level > 99) {
+        res.render("win");
+    }
+    else {
         const levelData = fs.readFileSync(filename)
         .toString();
         // see what we've got
         console.log(levelData);
         // render this level
-        res.render("game", {levelData: levelData, levelNumber: req.params.levelID});
-    }
-    else {
-        res.render("win");
+        res.render("game", {levelData: levelData, levelNumber: req.params.levelID, levelName: levels[level]});
     }
 })
 
