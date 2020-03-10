@@ -108,11 +108,13 @@ class PowerUp {
             if (this.type === "donut") {
                 donutsRemaining --;
                 console.log('ate a donut');
-                player.img = tongueFace;
-                clearInterval(player.facetimeout);
-                player.facetimeout = setTimeout(() => {
-                    player.resetFace()
-                }, 100)
+                if (player.img === smileFace) {
+                    player.img = tongueFace;
+                    clearInterval(player.facetimeout);
+                    player.facetimeout = setTimeout(() => {
+                        player.resetFace()
+                    }, 100)
+                }
             }
             else if (this.type === "carrot") {
                 player.invincible = true;
@@ -121,11 +123,7 @@ class PowerUp {
                 monsters.forEach(monster => {
                     monster.moveOptions = 0;
                 })
-                if (player.resetTimeout) clearTimeout(player.resetTimeout);
-                player.resetTimeout = setTimeout(() => {
-                    player.invincible = false;
-                    player.resetFace();
-                }, 10000);
+                player.invincible += 100;
             }
         }
     }
@@ -150,7 +148,8 @@ class Player {
         this.dead = false;
         this.speed = 10;
         this.direction = noDirection;
-        this.moveInterval = setInterval(movePlayer, 1000 / this.speed);
+        this.moveInterval = setInterval(() => this.move(), 1000 / this.speed);
+        this.powerupInterval = setInterval(() => this.digest(), 100);
         this.lastFrame = Date.now();
         this.controls = {
             mouseButton: false,
@@ -173,7 +172,8 @@ class Player {
         resetMap();
         this.dead = false;
         this.img = smileFace;
-        this.moveInterval = setInterval(movePlayer, 1000 / this.speed);
+        this.moveInterval = setInterval(() => this.move(), 1000 / this.speed);
+        this.powerupInterval = setInterval(() => this.digest(), 100);
     }
 
     resetFace() {
@@ -191,10 +191,148 @@ class Player {
         this.controls.latestKeys = [];
         this.controls.letOffKeys = [];
         clearInterval(this.moveInterval);
+        clearInterval(this.powerupInterval);
         this.img = deadFace;
         setTimeout(() => {
            this.respawn();
         }, 2000);
+    }
+
+    digest() {
+        if (paused) return;
+        this.invincible = Math.max(this.invincible -1 , 0);
+        if (0 < this.invincible && this.invincible < 15) {
+            this.img = smileFace;
+            setTimeout(() => {
+                this.resetFace();
+            }, 50);
+        }
+        else if (this.invincible == 0) {
+            this.resetFace();
+        }
+    }
+
+    move() {
+        if (paused) return;
+
+        this.lastFrame = Date.now();
+    
+        this.x += this.direction.x;
+        this.y += this.direction.y;
+        // a trail that monsters can smell?
+        gameBoardMap[this.y][this.x].obstruction = NaN;
+    
+        let xdif = Math.round(mousePos.x * gameBoardWidth) - this.x;
+        let ydif = Math.round(mousePos.y * gameBoardHeight) - this.y;
+        let moveUp, moveDown, moveLeft, moveRight;
+    
+        if (this.controls.mouseButton) {
+            if (xdif > 0) {
+                moveRight = true;
+            }
+            else if (xdif < 0) {
+                moveLeft = true;
+            }
+            if (ydif < 0) {
+                moveUp = true;
+            }
+            else if (ydif > 0) {
+                moveDown = true;
+            }
+        }
+    
+        // process keys which have been released
+        this.controls.letOffKeys.forEach(offKey => {
+            if (this.controls.latestKeys.includes(offKey)) {
+                this.controls.latestKeys.splice(this.controls.latestKeys.indexOf(offKey), 1);
+            }
+        })
+        this.controls.letOffKeys = [];
+    
+        
+        let currentDirection = this.direction;
+        let newDirection = undefined;
+        this.direction = noDirection;
+        for (let i = this.controls.latestKeys.length - 1; i >= 0; i--) {
+            let key = this.controls.latestKeys[i];
+            if ((key === "ArrowUp" || moveUp) && this.y > 0) {
+                newDirection = directions[3];
+            }
+            else if ((key === "ArrowDown"  || moveDown) && this.y < gameBoardHeight - 1) {
+                newDirection = directions[1];
+            }
+            else if ((key === "ArrowLeft"  || moveLeft) && this.x > 0) {
+                newDirection = directions[2];
+            }
+            else if ((key === "ArrowRight"  || moveRight) && this.x < gameBoardWidth - 1) {
+                newDirection = directions[0];
+            }
+            if (newDirection && gameBoardMap[this.y + newDirection.y][this.x + newDirection.x].passableByPlayer) {
+                if (this.direction === noDirection) {
+                    this.direction = newDirection;
+                }
+                // always prefer to go in a direction you're not currently going
+                if (newDirection != currentDirection) {
+                    this.direction = newDirection;
+                    break;
+                }
+            }
+        }
+    
+        if (gameBoardMap[this.y][this.x].powerUp) {
+    
+            gameBoardMap[this.y][this.x].powerUp.eat();
+    
+            // was that the last of them??
+            if (donutsRemaining === 0) {
+                // X's on map explode
+                gameBoardMap.forEach((row, y) => {
+                    row.forEach((location, x) => {
+                        if (location.terrain === "X" || location.terrain === "x") {
+                            // capital Xs become escape route
+                            if (location.terrain === "X") {
+                                gameBoardMap[y][x].terrain = "O";
+                                // block monsters from going out this way
+                                gameBoardMap[y][x].obstruction = {type: "escape"};
+                            }
+                            else {
+                                gameBoardMap[y][x].terrain = "o";
+                                gameBoardMap[y][x].obstruction = "";
+                            }
+                            let explosionImg = $("<img>")
+                                .attr("src", "/images/boom.gif")
+                                .css({
+                                    "top": y/gameBoardHeight*100 + "vmin",
+                                    "left": "Calc(" + x/gameBoardWidth*100 + "vmin + " + 
+                                    ($(document).width() - $("#gameCanvas").width())/ 2 + "px)",
+                                    "height": 1/gameBoardHeight*100 + "vmin",
+                                    "width": 1/gameBoardWidth*100 + "vmin",
+                                    "z-index": "100"
+                                })
+                                .addClass("blockimg")
+                                .appendTo(document.body)
+                            setTimeout(() => {
+                                explosionImg.remove();
+                            }, 1000);
+                        }
+                    })
+                })
+            }
+        }
+        if (gameBoardMap[this.y][this.x].terrain === "O") {
+            // next level
+            console.log("next level!");
+            pause();
+            $("#gameCanvas").addClass("swipeUp");
+            let swipeInterval = setInterval(() => {
+                swipeAnimation ++;
+            }, 33);
+            setTimeout(() => {
+                clearInterval(swipeInterval);
+                window.location.href="/game/" + (parseInt($("#levelNumber").text()) + 1);
+            }, 1000);
+        }
+    
     }
 }
 let player;
@@ -625,124 +763,5 @@ function unPause() {
 }
 
 function movePlayer() {
-    if (paused) return;
-
-    player.lastFrame = Date.now();
-
-    player.x += player.direction.x;
-    player.y += player.direction.y;
-    // a trail that monsters can smell?
-    gameBoardMap[player.y][player.x].obstruction = NaN;
-
-    let xdif = Math.round(mousePos.x * gameBoardWidth) - player.x;
-    let ydif = Math.round(mousePos.y * gameBoardHeight) - player.y;
-    let moveUp, moveDown, moveLeft, moveRight;
-
-    if (player.controls.mouseButton) {
-        if (xdif > 0) {
-            moveRight = true;
-        }
-        else if (xdif < 0) {
-            moveLeft = true;
-        }
-        if (ydif < 0) {
-            moveUp = true;
-        }
-        else if (ydif > 0) {
-            moveDown = true;
-        }
-    }
-
-    // process keys which have been released
-    player.controls.letOffKeys.forEach(offKey => {
-        if (player.controls.latestKeys.includes(offKey)) {
-            player.controls.latestKeys.splice(player.controls.latestKeys.indexOf(offKey), 1);
-        }
-    })
-    player.controls.letOffKeys = [];
-
-    
-    let currentDirection = player.direction;
-    let newDirection = undefined;
-    player.direction = noDirection;
-    for (let i = player.controls.latestKeys.length - 1; i >= 0; i--) {
-        let key = player.controls.latestKeys[i];
-        if ((key === "ArrowUp" || moveUp) && player.y > 0) {
-            newDirection = directions[3];
-        }
-        else if ((key === "ArrowDown"  || moveDown) && player.y < gameBoardHeight - 1) {
-            newDirection = directions[1];
-        }
-        else if ((key === "ArrowLeft"  || moveLeft) && player.x > 0) {
-            newDirection = directions[2];
-        }
-        else if ((key === "ArrowRight"  || moveRight) && player.x < gameBoardWidth - 1) {
-            newDirection = directions[0];
-        }
-        if (newDirection && gameBoardMap[player.y + newDirection.y][player.x + newDirection.x].passableByPlayer) {
-            if (player.direction === noDirection) {
-                player.direction = newDirection;
-            }
-            // always prefer to go in a direction you're not currently going
-            if (newDirection != currentDirection) {
-                player.direction = newDirection;
-                break;
-            }
-        }
-    }
-
-    if (gameBoardMap[player.y][player.x].powerUp) {
-
-        gameBoardMap[player.y][player.x].powerUp.eat();
-
-        // was that the last of them??
-        if (donutsRemaining === 0) {
-            // X's on map explode
-            gameBoardMap.forEach((row, y) => {
-                row.forEach((location, x) => {
-                    if (location.terrain === "X" || location.terrain === "x") {
-                        // capital Xs become escape route
-                        if (location.terrain === "X") {
-                            gameBoardMap[y][x].terrain = "O";
-                            // block monsters from going out this way
-                            gameBoardMap[y][x].obstruction = {type: "escape"};
-                        }
-                        else {
-                            gameBoardMap[y][x].terrain = "o";
-                            gameBoardMap[y][x].obstruction = "";
-                        }
-                        let explosionImg = $("<img>")
-                            .attr("src", "/images/boom.gif")
-                            .css({
-                                "top": y/gameBoardHeight*100 + "vmin",
-                                "left": "Calc(" + x/gameBoardWidth*100 + "vmin + " + 
-                                ($(document).width() - $("#gameCanvas").width())/ 2 + "px)",
-                                "height": 1/gameBoardHeight*100 + "vmin",
-                                "width": 1/gameBoardWidth*100 + "vmin",
-                                "z-index": "100"
-                            })
-                            .addClass("blockimg")
-                            .appendTo(document.body)
-                        setTimeout(() => {
-                            explosionImg.remove();
-                        }, 1000);
-                    }
-                })
-            })
-        }
-    }
-    if (gameBoardMap[player.y][player.x].terrain === "O") {
-        // next level
-        console.log("next level!");
-        pause();
-        $("#gameCanvas").addClass("swipeUp");
-        swipeInterval = setInterval(() => {
-            swipeAnimation ++;
-        }, 33);
-        setTimeout(() => {
-            clearInterval(swipeInterval);
-            window.location.href="/game/" + (parseInt($("#levelNumber").text()) + 1);
-        }, 1000);
-    }
 }
 
