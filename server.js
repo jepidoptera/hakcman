@@ -9,9 +9,10 @@ const apiKey = process.env.APIKEY || "no_api_key";
 const levels = [
     "easymobile",
     "inception",
+    "hohum",
     "the original",
     "inexorable",
-    "level 5",
+    "ratchet up",
     "the crucible",
     "4 square",
     "the devil's lair",
