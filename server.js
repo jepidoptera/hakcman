@@ -57,7 +57,7 @@ app.get('/game/:levelID', (req, res) => {
         filename = `public/levels/${levels[level]}.lvl`;
     }
     console.log(filename);
-    if (level > 99) {
+    if (level === 99) {
         res.render("win");
     }
     else {
