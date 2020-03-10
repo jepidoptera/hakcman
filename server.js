@@ -6,6 +6,17 @@ require('dotenv').config();
 const port = process.env.PORT || 8080;
 const apiKey = process.env.APIKEY || "no_api_key";
 
+const level = [
+    "easymobile",
+    "inception",
+    "the original",
+    "inexorable",
+    "the crucible",
+    "section 4",
+    "the devil's lair",
+    "labyrinth"
+]
+
 // Serve static files
 app.use(express.static(__dirname + '/public'));
 
@@ -33,7 +44,9 @@ app.get ("/", (req, res) => {
 })
 
 app.get('/game/:levelID', (req, res) => {
-    const filename = `public/levels/level${req.params.levelID}.lvl`;
+    console.log(level[req.params.levelID])
+    const filename = `public/levels/${level[req.params.levelID-1]}.lvl`;
+    console.log(filename);
     if (fs.existsSync(filename)) {
         const levelData = fs.readFileSync(filename)
         .toString();
