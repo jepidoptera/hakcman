@@ -151,7 +151,6 @@ class Player {
         this.controls = {
             mouseButton: false,
             latestKeys: [],
-            letOffKeys: [],
         } 
     }
 
@@ -184,7 +183,6 @@ class Player {
         this.dead = true;
         this.direction = noDirection;
         this.controls.latestKeys = [];
-        this.controls.letOffKeys = [];
         this.img = deadFace;
         setTimeout(() => {
            this.respawn();
@@ -534,8 +532,7 @@ $(document).ready(() => {
 
     // player input
     $(document).on("keydown", function(e) {
-        let coldStart = false;
-        if (player.controls.latestKeys.length === 0) coldStart = true;
+        let coldStart = player.offset.x === 0 && player.offset.y === 0;
         if (!player.controls.latestKeys.includes(e.key)) {
             player.controls.latestKeys.push(e.key);
         }
