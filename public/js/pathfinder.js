@@ -4,6 +4,7 @@
 // Implements the astar search algorithm in javascript using a Binary Heap.
 // Includes Binary Heap (with modifications) from Marijn Haverbeke.
 // http://eloquentjavascript.net/appendix2.html
+// slightly debugged by Peter Allen circa March 2020
 
 function pathTo(node){
     var curr = node,
