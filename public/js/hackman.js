@@ -15,6 +15,13 @@ var devilFace;
 var deadFace;
 var ghost;
 
+var gameBoardMap;
+var nodeMap;
+var donutsRemaining = Infinity;
+var maximumDonuts = 0;
+var swipeAnimation = 0;
+let paused = true;
+
 const directions = [
     {x:1, y:0, index:0}, 
     {x:0, y:1, index:1}, 
@@ -76,12 +83,6 @@ class mapLocation {
         : true;
     }
 }
-var gameBoardMap;
-var nodeMap;
-var donutsRemaining = Infinity;
-var maximumDonuts = 0;
-var swipeAnimation = 0;
-let paused = true;
 
 class PowerUp {
     constructor(x, y, type = "donut") {
@@ -452,7 +453,7 @@ class Monster {
             if ((newMoveOptions | this.moveOptions) != this.moveOptions || 
                 !(newMoveOptions & 2 ** this.direction.index) || player.invincible) {
                 newDirection = directions[0];
-
+ 
                 let xdif = player.x - this.x;
                 let ydif = player.y - this.y;
                 if (player.invincible) {
@@ -642,8 +643,11 @@ function resetMap() {
     // put back ten percent of donuts
     const enoughDonuts = Math.min(donutsRemaining + maximumDonuts / 10, maximumDonuts);
     const firstDonut = Math.floor(Math.random() * maximumDonuts);
-    for (i in donuts) {
-        let n = (parseInt(i) + firstDonut) % maximumDonuts;
+    let approxDist = (x, y) => Math.max(Math.abs(x - 13), Math.abs(y - 13))
+
+    donuts.sort((a, b) => approxDist(a.x, a.y) > approxDist(b.x, b.y) ? -1 : 1)
+    for (let i = 0; i < maximumDonuts; i++) {
+        let n = (i + firstDonut) % maximumDonuts;
         if (!donuts[n].exists) {
             donuts[n].respawn();
         }
