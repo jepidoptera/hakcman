@@ -645,7 +645,20 @@ function resetMap() {
     const firstDonut = Math.floor(Math.random() * maximumDonuts);
     let approxDist = (x, y) => Math.max(Math.abs(x - 13), Math.abs(y - 13))
 
-    donuts.sort((a, b) => approxDist(a.x, a.y) > approxDist(b.x, b.y) ? -1 : 1)
+    donuts.sort((a, b) => {
+        if (approxDist(a.x, a.y) > approxDist(b.x, b.y))
+            return -1
+        else if (approxDist(a.x, a.y) < approxDist(b.x, b.y))
+            return 1
+        else if (a.x > b.x)
+            return -1
+        else if (b.x > a.x)
+            return 1
+        else if (a.y > b.y)
+            return -1
+        else return 1
+    })
+        
     for (let i = 0; i < maximumDonuts; i++) {
         let n = (i + firstDonut) % maximumDonuts;
         if (!donuts[n].exists) {
