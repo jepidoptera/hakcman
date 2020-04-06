@@ -153,6 +153,7 @@ class Player {
             mouseButton: false,
             latestKeys: [],
         } 
+        this.path = [];
     }
 
     locate(x, y) {
@@ -246,33 +247,43 @@ class Player {
         }
         else this.controls.mouseButton = false;
         
-        let currentDirection = this.direction;
-        let newDirection = undefined;
-        this.direction = noDirection;
-        for (let i = activeMotions.length - 1; i >= 0; i--) {
-            let key = activeMotions[i];
-            if ((key === "ArrowUp" || key === "MouseUp") && this.y > 0) {
-                newDirection = directions[3];
-            }
-            else if ((key === "ArrowDown"  || key === "MouseDown") && this.y < gameBoardHeight - 1) {
-                newDirection = directions[1];
-            }
-            else if ((key === "ArrowLeft"  || key === "MouseLeft") && this.x > 0) {
-                newDirection = directions[2];
-            }
-            else if ((key === "ArrowRight"  || key === "MouseRight") && this.x < gameBoardWidth - 1) {
-                newDirection = directions[0];
-            }
-            if (newDirection && gameBoardMap[this.y + newDirection.y][this.x + newDirection.x].passableByPlayer) {
-                if (this.direction === noDirection) {
-                    this.direction = newDirection;
+        if (this.path.length == 0) {
+            let currentDirection = this.direction;
+            let newDirection = undefined;
+            this.direction = noDirection;
+            for (let i = activeMotions.length - 1; i >= 0; i--) {
+                let key = activeMotions[i];
+                if ((key === "ArrowUp" || key === "MouseUp") && this.y > 0) {
+                    newDirection = directions[3];
                 }
-                // always prefer to go in a direction you're not currently going
-                if (newDirection != currentDirection) {
-                    this.direction = newDirection;
-                    break;
+                else if ((key === "ArrowDown"  || key === "MouseDown") && this.y < gameBoardHeight - 1) {
+                    newDirection = directions[1];
+                }
+                else if ((key === "ArrowLeft"  || key === "MouseLeft") && this.x > 0) {
+                    newDirection = directions[2];
+                }
+                else if ((key === "ArrowRight"  || key === "MouseRight") && this.x < gameBoardWidth - 1) {
+                    newDirection = directions[0];
+                }
+                if (newDirection && gameBoardMap[this.y + newDirection.y][this.x + newDirection.x].passableByPlayer) {
+                    if (this.direction === noDirection) {
+                        this.direction = newDirection;
+                    }
+                    // always prefer to go in a direction you're not currently going
+                    if (newDirection != currentDirection) {
+                        this.direction = newDirection;
+                        break;
+                    }
                 }
             }
+        }
+        else {
+            let nextmove = this.path.shift();
+            if (nextmove.x > this.x) this.direction = directions[0];
+            if (nextmove.y > this.y) this.direction = directions[1];
+            if (nextmove.x < this.x) this.direction = directions[2];
+            if (nextmove.y < this.y) this.direction = directions[3];
+            if (!gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].passable) this.direction = noDirection;
         }
     
         if (gameBoardMap[this.y][this.x].powerUp) {
@@ -379,7 +390,7 @@ class Monster {
     die() {
         this.dead = true;
         gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = null;
-        nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].weight = 1;
+        nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].monster = 0;
         this.x += this.offset.x;
         this.y += this.offset.y;
         this.direction = {
@@ -406,8 +417,8 @@ class Monster {
         if (!this.dead) {
             gameBoardMap[this.y][this.x].obstruction = false;
             gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = false;
-            nodeMap.grid[this.y][this.x].weight = 1;
-            nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].weight = 1;
+            nodeMap.grid[this.y][this.x].monster = 0;
+            nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].monster = 0;
         }
         else {
             clearTimeout(this.respawnTimeout);
@@ -427,18 +438,6 @@ class Monster {
         this.x += this.direction.x;
         this.y += this.direction.y;
 
-        if (gameBoardMap[this.y][this.x].terrain === "*") {
-            let er = 1;
-        }
-    
-        // // did we get 'em??
-        // if (this.x === player.x && this.y === player.y) {
-        //     this.x -= this.direction.x;
-        //     this.y -= this.direction.y;
-        //     player.die();
-        //     this.lastFrame = Date.now();
-        //     return;
-        // }
         // check which options are available to move towards
         var newDirection;
         let newMoveOptions = directions.reduce((sum, direction, i) => {
@@ -526,11 +525,11 @@ class Monster {
 
         // clear the current location
         gameBoardMap[this.y][this.x].obstruction = null;
-        nodeMap.grid[this.y][this.x].weight = 1;
+        nodeMap.grid[this.y][this.x].monster = 0;
 
         // block off the square we are moving into
         gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = this;
-        nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].weight = 0;
+        nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].monster = 1;
 
         this.lastFrame = Date.now();
     }
@@ -569,8 +568,33 @@ $(document).ready(() => {
     })
 
     $("canvas").on("click", function(e) {
-        player.controls.mouseButton = true;
+        // player.controls.mouseButton = true;
         mousePos = {x: (event.clientX - $("canvas").position().left) / $("canvas").width(), y: (event.clientY - $("canvas").position().top) / $("canvas").height()}
+        destination = {
+            x: mousePos.x * gameBoardWidth,
+            y: mousePos.y * gameBoardHeight
+        }
+        if (!gameBoardMap[Math.floor(destination.y)][Math.floor(destination.x)].passable) {
+            // a bit of error correction
+            if (destination.x > 0.5 && destination.x < gameBoardWidth - 1.5 && 
+                gameBoardMap[Math.floor(destination.y)][Math.floor(destination.x + (destination.x % 1 > .5 ? 1 : -1))].passable) {
+                    destination.x += (destination.x % 1 > .5 ? 1 : -1)
+            }
+            else if (destination.y > 0.5 && destination.y < gameBoardHeight - 1.5 &&
+                gameBoardMap[Math.floor(destination.y + (destination.y % 1 > .5 ? 1 : -1))][Math.floor(destination.x)].passable) {
+                    destination.y += (destination.y % 1 > .5 ? 1 : -1)
+            }
+            else if (destination.x > 0.5 && destination.x < gameBoardWidth - 1.5 &&
+                destination.y > 0.5 && destination.y < gameBoardHeight - 1.5 &&
+                gameBoardMap[Math.floor(destination.y + (destination.y % 1 > .5 ? 1 : -1))][Math.floor(destination.x + (destination.x % 1 > .5 ? 1 : -1))].passable) {
+                    destination.x += (destination.x % 1 > .5 ? 1 : -1)
+                    destination.y += (destination.y % 1 > .5 ? 1 : -1)
+            }
+        }
+        player.path = pathFinder.search(
+            nodeMap, nodeMap.grid[player.y + player.direction.y][player.x + player.direction.x], 
+            nodeMap.grid[Math.floor(destination.y)][Math.floor(destination.x)], {ignoreMonsters: true}
+        )
      })
     $(document).on("mouseup", function(e) {
         player.controls.mouseButton = false;
