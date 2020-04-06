@@ -289,7 +289,7 @@ class Player {
             if (nextmove.y > this.y) this.direction = directions[1];
             if (nextmove.x < this.x) this.direction = directions[2];
             if (nextmove.y < this.y) this.direction = directions[3];
-            if (!gameBoardMap.grid[this.y + this.direction.y][this.x + this.direction.x].passable) this.direction = noDirection;
+            if (!gameBoardMap.grid[this.y + this.direction.y][this.x + this.direction.x].passableByPlayer) this.direction = noDirection;
         }
     
         if (gameBoardMap.grid[this.y][this.x].powerUp) {
