@@ -218,38 +218,49 @@ class Player {
     
         let xdif = Math.round(mousePos.x * gameBoardWidth) - this.x;
         let ydif = Math.round(mousePos.y * gameBoardHeight) - this.y;
-        let moveUp, moveDown, moveLeft, moveRight;
-    
-        if (this.controls.mouseButton) {
-            if (xdif > 0) {
-                moveRight = true;
-            }
-            else if (xdif < 0) {
-                moveLeft = true;
+        let activeMotions = this.controls.latestKeys.map(key => key);
+
+        if (this.controls.mouseButton && (xdif || ydif)) {
+            if (Math.abs(xdif) < Math.abs(ydif)) {
+                if (xdif > 0) {
+                    activeMotions.push("MouseRight")
+                }
+                else if (xdif < 0) {
+                    activeMotions.push("MouseLeft")
+                }
             }
             if (ydif < 0) {
-                moveUp = true;
+                activeMotions.push("MouseUp")
             }
             else if (ydif > 0) {
-                moveDown = true;
+                activeMotions.push("MouseDown")
+            }
+            if (Math.abs(xdif) >= Math.abs(ydif)) {
+                if (xdif > 0) {
+                    activeMotions.push("MouseRight")
+                }
+                else if (xdif < 0) {
+                    activeMotions.push("MouseLeft")
+                }
             }
         }
+        else this.controls.mouseButton = false;
         
         let currentDirection = this.direction;
         let newDirection = undefined;
         this.direction = noDirection;
-        for (let i = this.controls.latestKeys.length - 1; i >= 0; i--) {
-            let key = this.controls.latestKeys[i];
-            if ((key === "ArrowUp" || moveUp) && this.y > 0) {
+        for (let i = activeMotions.length - 1; i >= 0; i--) {
+            let key = activeMotions[i];
+            if ((key === "ArrowUp" || key === "MouseUp") && this.y > 0) {
                 newDirection = directions[3];
             }
-            else if ((key === "ArrowDown"  || moveDown) && this.y < gameBoardHeight - 1) {
+            else if ((key === "ArrowDown"  || key === "MouseDown") && this.y < gameBoardHeight - 1) {
                 newDirection = directions[1];
             }
-            else if ((key === "ArrowLeft"  || moveLeft) && this.x > 0) {
+            else if ((key === "ArrowLeft"  || key === "MouseLeft") && this.x > 0) {
                 newDirection = directions[2];
             }
-            else if ((key === "ArrowRight"  || moveRight) && this.x < gameBoardWidth - 1) {
+            else if ((key === "ArrowRight"  || key === "MouseRight") && this.x < gameBoardWidth - 1) {
                 newDirection = directions[0];
             }
             if (newDirection && gameBoardMap[this.y + newDirection.y][this.x + newDirection.x].passableByPlayer) {
@@ -557,30 +568,18 @@ $(document).ready(() => {
         }
     })
 
-    $(document).on("mousedown", function(e) {
+    $("canvas").on("click", function(e) {
         player.controls.mouseButton = true;
-    })
+        mousePos = {x: (event.clientX - $("canvas").position().left) / $("canvas").width(), y: (event.clientY - $("canvas").position().top) / $("canvas").height()}
+     })
     $(document).on("mouseup", function(e) {
         player.controls.mouseButton = false;
     })
     
     $("#gameCanvas").mousemove(function(event) {
-        mousePos = {x: event.clientX / $(this).width(), y: event.clientY / $(this).height()}
         // $("#mousepos").text(event.clientX + " " + event.clientY);
     })
 
-    // phone events??
-    $(document).on("vmousedown", function(e) {
-        player.controls.mouseButton = true;
-    })
-    $(document).on("vmouseup", function(e) {
-        player.controls.mouseButton = false;
-    })
-    
-    $(document).on("vmousemove", function(event) {
-        mousePos = {x: event.pageX / $("#gameCanvas").width(), y: event.clientY / $("#gameCanvas").height()}
-    })
-        
     // load images
     bricksImg = document.getElementById("bricksImg")
     smileFace = document.getElementById("smileFace")
