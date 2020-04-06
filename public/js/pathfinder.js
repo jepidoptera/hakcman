@@ -43,7 +43,7 @@ var pathFinder = {
         var openHeap = getHeap(),
             closestNode = start; // set the start node to be the closest if required
 
-        var ignoreMonsters = options.ignoreMonsters || false;
+        var isPlayer = options.isPlayer || false;
 
         start.h = heuristic(start, end);
         graph.markDirty(start);
@@ -69,7 +69,7 @@ var pathFinder = {
             for (var i = 0, il = neighbors.length; i < il; ++i) {
                 var neighbor = neighbors[i];
 
-                if (neighbor.closed || neighbor.isWall(ignoreMonsters)) {
+                if (neighbor.closed || neighbor.isWall(isPlayer)) {
                     // Not a valid node to process, skip to next neighbor.
                     continue;
                 }
@@ -219,7 +219,7 @@ class Graph {
             rowDebug = [];
             row = nodes[x];
             for (y = 0, l = row.length; y < l; y++) {
-                rowDebug.push(row[y].weight);
+                rowDebug.push(row[y].isWall(true) ? "*" : ' ');
             }
             graphString.push(rowDebug.join(" "));
         }
@@ -228,24 +228,23 @@ class Graph {
 }
 
 
-
-function GridNode(x, y, weight) {
-    this.x = x;
-    this.y = y;
-    this.weight = weight;
+class GridNode {
+    constructor(x, y, weight) {
+        this.x = x;
+        this.y = y;
+        this.weight = weight;
+    }
+    toString() {
+        return "[" + this.x + " " + this.y + "]";
+    }
+    getCost () {
+        return 1 //this.weight;
+    }
+    isWall(ignoreMonsters = false) {
+        return this.weight === 0 || (this.monster && !ignoreMonsters);
+    }
 }
 
-GridNode.prototype.toString = function() {
-    return "[" + this.x + " " + this.y + "]";
-};
-
-GridNode.prototype.getCost = function() {
-    return this.weight;
-};
-
-GridNode.prototype.isWall = function(ignoreMonsters = false) {
-    return this.weight === 0 || (this.monster && !ignoreMonsters);
-};
 
 function BinaryHeap(scoreFunction){
     this.content = [];
