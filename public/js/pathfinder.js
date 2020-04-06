@@ -43,6 +43,8 @@ var pathFinder = {
         var openHeap = getHeap(),
             closestNode = start; // set the start node to be the closest if required
 
+        var ignoreMonsters = options.ignoreMonsters || false;
+
         start.h = heuristic(start, end);
         graph.markDirty(start);
         
@@ -67,7 +69,7 @@ var pathFinder = {
             for (var i = 0, il = neighbors.length; i < il; ++i) {
                 var neighbor = neighbors[i];
 
-                if (neighbor.closed || neighbor.isWall()) {
+                if (neighbor.closed || neighbor.isWall(ignoreMonsters)) {
                     // Not a valid node to process, skip to next neighbor.
                     continue;
                 }
@@ -241,8 +243,8 @@ GridNode.prototype.getCost = function() {
     return this.weight;
 };
 
-GridNode.prototype.isWall = function() {
-    return this.weight === 0;
+GridNode.prototype.isWall = function(ignoreMonsters = false) {
+    return this.weight === 0 || (this.monster && !ignoreMonsters);
 };
 
 function BinaryHeap(scoreFunction){
