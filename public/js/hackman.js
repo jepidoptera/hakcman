@@ -574,18 +574,18 @@ $(document).ready(() => {
             x: mousePos.x * gameBoardWidth,
             y: mousePos.y * gameBoardHeight
         }
-        if (!gameBoardMap[Math.floor(destination.y)][Math.floor(destination.x)].passable) {
+        if (!gameBoardMap[Math.floor(destination.y)][Math.floor(destination.x)].passableByPlayer) {
             // a bit of error correction
-            if (destination.x > 0.5 && destination.x < gameBoardWidth - 1.5 && 
+            if (destination.x > 0.5 && destination.x < gameBoardWidth - 0.5 && 
                 gameBoardMap[Math.floor(destination.y)][Math.floor(destination.x + (destination.x % 1 > .5 ? 1 : -1))].passable) {
                     destination.x += (destination.x % 1 > .5 ? 1 : -1)
             }
-            else if (destination.y > 0.5 && destination.y < gameBoardHeight - 1.5 &&
+            else if (destination.y > 0.5 && destination.y < gameBoardHeight - 0.5 &&
                 gameBoardMap[Math.floor(destination.y + (destination.y % 1 > .5 ? 1 : -1))][Math.floor(destination.x)].passable) {
                     destination.y += (destination.y % 1 > .5 ? 1 : -1)
             }
-            else if (destination.x > 0.5 && destination.x < gameBoardWidth - 1.5 &&
-                destination.y > 0.5 && destination.y < gameBoardHeight - 1.5 &&
+            else if (destination.x > 0.5 && destination.x < gameBoardWidth - 0.5 &&
+                destination.y > 0.5 && destination.y < gameBoardHeight - 0.5 &&
                 gameBoardMap[Math.floor(destination.y + (destination.y % 1 > .5 ? 1 : -1))][Math.floor(destination.x + (destination.x % 1 > .5 ? 1 : -1))].passable) {
                     destination.x += (destination.x % 1 > .5 ? 1 : -1)
                     destination.y += (destination.y % 1 > .5 ? 1 : -1)
