@@ -1,3 +1,4 @@
+// jshist esversion: 6
 let gameBoardWidth = 27;
 let gameBoardHeight = 27;
 let gameCellWidth;
@@ -16,7 +17,6 @@ var deadFace;
 var ghost;
 
 var gameBoardMap;
-var nodeMap;
 var donutsRemaining = Infinity;
 var maximumDonuts = 0;
 var swipeAnimation = 0;
@@ -30,10 +30,9 @@ const directions = [
 ]
 const noDirection = {x: 0, y: 0, index: -1};
 
-class mapLocation {
+class mapLocation extends GridNode{
     constructor(char, x, y) {
-        this.x = x;
-        this.y = y;
+        super(x, y);
         if (char === "*" || char === "X" || char === "x") 
             this.obstruction = "wall";
 
@@ -72,6 +71,12 @@ class mapLocation {
         }
         this.terrain = char;
     }
+    isWall(player = false) {
+        if (player) 
+            return !this.passableByPlayer
+        else 
+            return !this.passable
+    }
     get passable() {
         return !this.obstruction;
     }
@@ -102,7 +107,7 @@ class PowerUp {
     eat() {
         if (this.exists) {
             this.exists = false;
-            gameBoardMap[this.y][this.x].terrain = " ";
+            gameBoardMap.grid[this.y][this.x].terrain = " ";
             if (this.type === "donut") {
                 donutsRemaining --;
                 console.log('ate a donut');
@@ -127,7 +132,7 @@ class PowerUp {
     }
     respawn() {
         if (!this.exists) {
-            gameBoardMap[this.y][this.x].terrain = this.char;
+            gameBoardMap.grid[this.y][this.x].terrain = this.char;
             if (this.type === "donut") donutsRemaining ++;
             this.exists = true;
         }
@@ -164,7 +169,7 @@ class Player {
     }
 
     respawn() {
-        gameBoardMap[this.y][this.x].obstruction = null;
+        gameBoardMap.grid[this.y][this.x].obstruction = null;
         this.x = this.start_x;
         this.y = this.start_y;
         resetMap();
@@ -185,6 +190,7 @@ class Player {
         this.dead = true;
         this.direction = noDirection;
         this.controls.latestKeys = [];
+        this.path = [];
         this.img = deadFace;
         setTimeout(() => {
            this.respawn();
@@ -215,7 +221,7 @@ class Player {
         this.x += this.direction.x;
         this.y += this.direction.y;
         // a trail that monsters can smell?
-        gameBoardMap[this.y][this.x].obstruction = NaN;
+        gameBoardMap.grid[this.y][this.x].obstruction = NaN;
     
         let xdif = Math.round(mousePos.x * gameBoardWidth) - this.x;
         let ydif = Math.round(mousePos.y * gameBoardHeight) - this.y;
@@ -265,7 +271,7 @@ class Player {
                 else if ((key === "ArrowRight"  || key === "MouseRight") && this.x < gameBoardWidth - 1) {
                     newDirection = directions[0];
                 }
-                if (newDirection && gameBoardMap[this.y + newDirection.y][this.x + newDirection.x].passableByPlayer) {
+                if (newDirection && gameBoardMap.grid[this.y + newDirection.y][this.x + newDirection.x].passableByPlayer) {
                     if (this.direction === noDirection) {
                         this.direction = newDirection;
                     }
@@ -283,28 +289,28 @@ class Player {
             if (nextmove.y > this.y) this.direction = directions[1];
             if (nextmove.x < this.x) this.direction = directions[2];
             if (nextmove.y < this.y) this.direction = directions[3];
-            if (!gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].passable) this.direction = noDirection;
+            if (!gameBoardMap.grid[this.y + this.direction.y][this.x + this.direction.x].passable) this.direction = noDirection;
         }
     
-        if (gameBoardMap[this.y][this.x].powerUp) {
+        if (gameBoardMap.grid[this.y][this.x].powerUp) {
     
-            gameBoardMap[this.y][this.x].powerUp.eat();
+            gameBoardMap.grid[this.y][this.x].powerUp.eat();
     
             // was that the last of them??
             if (donutsRemaining === 0) {
                 // X's on map explode
-                gameBoardMap.forEach((row, y) => {
+                gameBoardMap.grid.forEach((row, y) => {
                     row.forEach((location, x) => {
                         if (location.terrain === "X" || location.terrain === "x") {
                             // capital Xs become escape route
                             if (location.terrain === "X") {
-                                gameBoardMap[y][x].terrain = "O";
+                                gameBoardMap.grid[y][x].terrain = "O";
                                 // block monsters from going out this way
-                                gameBoardMap[y][x].obstruction = {type: "escape"};
+                                gameBoardMap.grid[y][x].obstruction = {type: "escape"};
                             }
                             else {
-                                gameBoardMap[y][x].terrain = "o";
-                                gameBoardMap[y][x].obstruction = "";
+                                gameBoardMap.grid[y][x].terrain = "o";
+                                gameBoardMap.grid[y][x].obstruction = "";
                             }
                             let explosionImg = $("<img>")
                                 .attr("src", "/images/boom.gif")
@@ -326,7 +332,7 @@ class Player {
                 })
             }
         }
-        if (gameBoardMap[this.y][this.x].terrain === "O") {
+        if (gameBoardMap.grid[this.y][this.x].terrain === "O") {
             // next level
             console.log("next level!");
             pause();
@@ -389,8 +395,7 @@ class Monster {
 
     die() {
         this.dead = true;
-        gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = null;
-        nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].monster = 0;
+        gameBoardMap.grid[this.y + this.direction.y][this.x + this.direction.x].obstruction = null;
         this.x += this.offset.x;
         this.y += this.offset.y;
         this.direction = {
@@ -415,10 +420,8 @@ class Monster {
 
     respawn() {
         if (!this.dead) {
-            gameBoardMap[this.y][this.x].obstruction = false;
-            gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = false;
-            nodeMap.grid[this.y][this.x].monster = 0;
-            nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].monster = 0;
+            gameBoardMap.grid[this.y][this.x].obstruction = false;
+            gameBoardMap.grid[this.y + this.direction.y][this.x + this.direction.x].obstruction = false;
         }
         else {
             clearTimeout(this.respawnTimeout);
@@ -441,7 +444,7 @@ class Monster {
         // check which options are available to move towards
         var newDirection;
         let newMoveOptions = directions.reduce((sum, direction, i) => {
-            if (!gameBoardMap[this.y + direction.y][this.x + direction.x].passable ||
+            if (!gameBoardMap.grid[this.y + direction.y][this.x + direction.x].passable ||
                 Math.abs(direction.index - this.direction.index) === 2) {
                 return sum;
             }
@@ -482,12 +485,12 @@ class Monster {
                 }
                 // but if that's not going to work out, due to a wall,
                 // or because it would be going backwards...
-                if (!gameBoardMap[this.y + newDirection.y][this.x + newDirection.x].passable 
+                if (!gameBoardMap.grid[this.y + newDirection.y][this.x + newDirection.x].passable 
                     || Math.abs(newDirection.index - this.direction.index) === 2 && !player.invincible) {
                         directions.forEach((direction, i) => {
                             // go anywhere but backwards
                             if (Math.abs(this.direction.index - i) != 2 &&
-                            gameBoardMap[this.y + direction.y]
+                            gameBoardMap.grid[this.y + direction.y]
                             [this.x + direction.x].passable) {
                                 newDirection = direction;
                             } 
@@ -509,7 +512,7 @@ class Monster {
 
         // make sure this is gonna work
         let tries = 0;
-        while (!gameBoardMap[this.y + this.direction.y]
+        while (!gameBoardMap.grid[this.y + this.direction.y]
             [this.x + this.direction.x].passable && tries < 4) {
                 // hit a wall - change direction
                 // should only ever happen in the case of a dead end
@@ -524,17 +527,15 @@ class Monster {
         this.moveOptions = newMoveOptions | 2 ** this.direction.index;
 
         // clear the current location
-        gameBoardMap[this.y][this.x].obstruction = null;
-        nodeMap.grid[this.y][this.x].monster = 0;
+        gameBoardMap.grid[this.y][this.x].obstruction = null;
 
         // block off the square we are moving into
-        gameBoardMap[this.y + this.direction.y][this.x + this.direction.x].obstruction = this;
-        nodeMap.grid[this.y + this.direction.y][this.x + this.direction.x].monster = 1;
+        gameBoardMap.grid[this.y + this.direction.y][this.x + this.direction.x].obstruction = this;
 
         this.lastFrame = Date.now();
     }
     findPath() {
-        this.path = pathFinder.search(nodeMap, nodeMap.grid[this.y][this.x], nodeMap.grid[player.y][player.x])
+        this.path = pathFinder.search(gameBoardMap, gameBoardMap.grid[this.y][this.x], gameBoardMap.grid[player.y][player.x])
     }
 }
 let monsters = [];
@@ -574,26 +575,26 @@ $(document).ready(() => {
             x: mousePos.x * gameBoardWidth,
             y: mousePos.y * gameBoardHeight
         }
-        if (!gameBoardMap[Math.floor(destination.y)][Math.floor(destination.x)].passableByPlayer) {
+        if (!gameBoardMap.grid[Math.floor(destination.y)][Math.floor(destination.x)].passableByPlayer) {
             // a bit of error correction
             if (destination.x > 0.5 && destination.x < gameBoardWidth - 0.5 && 
-                gameBoardMap[Math.floor(destination.y)][Math.floor(destination.x + (destination.x % 1 > .5 ? 1 : -1))].passable) {
+                gameBoardMap.grid[Math.floor(destination.y)][Math.floor(destination.x + (destination.x % 1 > .5 ? 1 : -1))].passableByPlayer) {
                     destination.x += (destination.x % 1 > .5 ? 1 : -1)
             }
             else if (destination.y > 0.5 && destination.y < gameBoardHeight - 0.5 &&
-                gameBoardMap[Math.floor(destination.y + (destination.y % 1 > .5 ? 1 : -1))][Math.floor(destination.x)].passable) {
+                gameBoardMap.grid[Math.floor(destination.y + (destination.y % 1 > .5 ? 1 : -1))][Math.floor(destination.x)].passableByPlayer) {
                     destination.y += (destination.y % 1 > .5 ? 1 : -1)
             }
             else if (destination.x > 0.5 && destination.x < gameBoardWidth - 0.5 &&
                 destination.y > 0.5 && destination.y < gameBoardHeight - 0.5 &&
-                gameBoardMap[Math.floor(destination.y + (destination.y % 1 > .5 ? 1 : -1))][Math.floor(destination.x + (destination.x % 1 > .5 ? 1 : -1))].passable) {
+                gameBoardMap.grid[Math.floor(destination.y + (destination.y % 1 > .5 ? 1 : -1))][Math.floor(destination.x + (destination.x % 1 > .5 ? 1 : -1))].passableByPlayer) {
                     destination.x += (destination.x % 1 > .5 ? 1 : -1)
                     destination.y += (destination.y % 1 > .5 ? 1 : -1)
             }
         }
         player.path = pathFinder.search(
-            nodeMap, nodeMap.grid[player.y + player.direction.y][player.x + player.direction.x], 
-            nodeMap.grid[Math.floor(destination.y)][Math.floor(destination.x)], {ignoreMonsters: true}
+            gameBoardMap, gameBoardMap.grid[player.y + player.direction.y][player.x + player.direction.x], 
+            gameBoardMap.grid[Math.floor(destination.y)][Math.floor(destination.x)], {isPlayer: true}
         )
      })
     $(document).on("mouseup", function(e) {
@@ -634,14 +635,28 @@ function loadGame() {
         .split("\n").map((line) => {
             return line.split('');
     });
-    gameBoardMap = Array(mapText.length);
+    let loadingMap = Array(mapText.length)
     mapText.forEach((row, y) => {
-        gameBoardMap[y] = Array(row.length)
+        loadingMap[y] = Array(row.length)
         row.forEach((char, x) => {
-            gameBoardMap[y][x] = new mapLocation(char, x, y);
+            loadingMap[y][x] = new mapLocation(char, x, y);
         })
     })
 
+    // get a node-based interpretation of the map
+    gameBoardMap = new Graph(loadingMap.map(row => {
+        return row.map(node => {
+            return node.passable ? 1 : 0;
+        })
+    }))
+    // merge the two into one
+    for (let y = 0; y < gameBoardMap.grid.length; y++) {
+        for (let x = 0; x < gameBoardMap.grid[y].length; x++) {
+            loadingMap[y][x].neighbors =  gameBoardMap.grid[y][x].neighbors;
+            gameBoardMap.grid[y][x] = loadingMap[y][x]
+        }
+    }
+    
     // testing::
     // donutsRemaining = 1;
     maximumDonuts = donutsRemaining;
@@ -654,12 +669,6 @@ function loadGame() {
     gameCellWidth = canvas.width / gameBoardWidth;
     gameCellHeight = canvas.height / gameBoardHeight;
 
-    // get a node-based interpretation of the map
-    nodeMap = new Graph(gameBoardMap.map(row => {
-        return row.map(node => {
-            return node.passable ? 1 : 0;
-        })
-    }))
 }
 
 function resetMap() {
@@ -700,15 +709,15 @@ function resetMap() {
         powerup.respawn();
     })
     // close down escape route
-    gameBoardMap.forEach((row, y) => {
+    gameBoardMap.grid.forEach((row, y) => {
         row.forEach((char, x) => {
-            if (gameBoardMap[y][x].terrain === "O") {
-                gameBoardMap[y][x].terrain = "X";
-                gameBoardMap[y][x].obstruction = "wall";
+            if (gameBoardMap.grid[y][x].terrain === "O") {
+                gameBoardMap.grid[y][x].terrain = "X";
+                gameBoardMap.grid[y][x].obstruction = "wall";
             }
-            else if (gameBoardMap[y][x].terrain === "o") {
-                gameBoardMap[y][x].terrain = "x";
-                gameBoardMap[y][x].obstruction = "wall";
+            else if (gameBoardMap.grid[y][x].terrain === "o") {
+                gameBoardMap.grid[y][x].terrain = "x";
+                gameBoardMap.grid[y][x].obstruction = "wall";
             }
         })
     })
@@ -721,12 +730,12 @@ function drawGameBoard() {
     for (let x = 0; x < gameBoardWidth; x++) {
         for (let y = 0; y < gameBoardHeight; y++) {
 
-            if (gameBoardMap[y][x].terrain === "*" || gameBoardMap[y][x].terrain.toLowerCase() === "x") {
+            if (gameBoardMap.grid[y][x].terrain === "*" || gameBoardMap.grid[y][x].terrain.toLowerCase() === "x") {
                 ctx.drawImage(bricksImg, 
                     gameCellWidth * x, gameCellHeight * (y - swipeAnimation),
                     gameCellWidth, gameCellHeight)
             }
-            else if (gameBoardMap[y][x].terrain === "+") {
+            else if (gameBoardMap.grid[y][x].terrain === "+") {
                 ctx.drawImage(donutImg, 
                     gameCellWidth * x, gameCellHeight * (y - swipeAnimation),
                     gameCellWidth, gameCellHeight)
