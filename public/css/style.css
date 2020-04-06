@@ -37,3 +37,40 @@ html, body {
 #startButton:hover {
     border: 1vmin solid white;
 }
+
+#trackPad {
+    display: none;
+}
+@media (max-aspect-ratio: 1/1) {
+    #trackPad {
+        width: Calc(100vmax - 100vmin);
+        height: Calc(100vmax - 100vmin);
+        position: absolute;
+        display: block;
+        top: 100vmin;
+        left: 50%;
+        transform: translate(-50%);
+        line-height: 0;
+    }
+    #directionsImage {
+        display: block;
+        position: fixed;
+        width: 90%;
+        height: 90%;
+        margin: 5%;
+    }
+    .trackButton {
+        width: 33.33%;
+        height: 33.33%;
+        display: inline-block;
+        z-index: 20;
+        box-sizing: border-box;
+        position: absolute;
+    }
+    .trackButton.outline {
+        border: 2px solid skyblue;
+    }
+    #startButton {
+        top: 50vmin;
+    }
+}

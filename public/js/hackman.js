@@ -541,6 +541,25 @@ class Monster {
 let monsters = [];
 
 $(document).ready(() => {
+    let trackButtons = [];
+    for (let n = 0; n < 9; n++) {
+        trackButtons.push(
+            $("<div>")
+            .addClass("trackButton")
+            .click((event) => {$(".trackButton").removeClass("outline"); $(event.target).addClass("outline")})
+            .css({"left": `${33.33 * (n % 3)}%`, "top": `${33.33 * Math.floor(n/3)}%`})
+        )
+    }
+    trackButtons[0].click(() => {player.controls.latestKeys = ["ArrowLeft", "ArrowUp"]})
+    trackButtons[1].click(() => {player.controls.latestKeys = ["ArrowUp"]})
+    trackButtons[2].click(() => {player.controls.latestKeys = ["ArrowRight", "ArrowUp"]})
+    trackButtons[3].click(() => {player.controls.latestKeys = ["ArrowLeft"]})
+    trackButtons[4].click(() => {player.controls.latestKeys = []})
+    trackButtons[5].click(() => {player.controls.latestKeys = ["ArrowRight"]})
+    trackButtons[6].click(() => {player.controls.latestKeys = ["ArrowLeft", "ArrowDown"]})
+    trackButtons[7].click(() => {player.controls.latestKeys = ["ArrowDown"]})
+    trackButtons[8].click(() => {player.controls.latestKeys = ["ArrowRight", "ArrowDown"]})
+    $("#trackPad").append(trackButtons);
 
     // player input
     $(document).on("keydown", function(e) {
